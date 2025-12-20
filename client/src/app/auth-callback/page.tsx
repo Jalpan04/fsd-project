@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthCallbackPage() {
@@ -17,7 +17,7 @@ export default function AuthCallbackPage() {
             const loginWithGithub = async () => {
                 try {
                     // Call our Express Backend
-                    const response = await axios.post('http://localhost:5000/api/auth/github', { code });
+                    const response = await api.post('/auth/github', { code });
                     
                     const { token, _id } = response.data;
                     

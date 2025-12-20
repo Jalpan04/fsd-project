@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft, ExternalLink, Calendar, User, Code2 } from 'lucide-react';
 
@@ -35,7 +35,7 @@ export default function ProjectPage() {
         if (userId && projectId) {
             const fetchProject = async () => {
                 try {
-                    const { data } = await axios.get(`http://localhost:5000/api/users/${userId}/projects/${projectId}`);
+                    const { data } = await api.get(`/users/${userId}/projects/${projectId}`);
                     setProject(data.project);
                     setAuthor(data.author);
                 } catch (error) {
@@ -78,7 +78,7 @@ export default function ProjectPage() {
                         )}
                         <div className="flex items-center gap-2">
                              <Calendar size={16} className="text-green-400" />
-                             <span>Created {new Date().getFullYear()}</span> {/* Date not in schema yet, fallback */}
+                             <span>Created {project.createdAt ? new Date(project.createdAt).getFullYear() : new Date().getFullYear()}</span>
                         </div>
                      </div>
                 </header>

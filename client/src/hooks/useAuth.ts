@@ -1,69 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import api from '@/lib/api';
+import { useRouter, usePathname } from 'next/navigation';
 
-interface User {
-    _id: string;
-    username: string;
-    displayName: string;
-    email: string;
-    avatarUrl?: string;
-    headline?: string;
-    bio?: string;
-    location?: string;
-    website?: string;
-    skills?: string[];
-    createdAt?: string;
-    
-    // Arrays
-    projects?: any[]; 
-    certificates?: any[];
-    
-    // Social Links
-    socials?: {
-        github?: string;
-        linkedin?: string;
-        twitter?: string;
-        instagram?: string;
-        blog?: string; // website alias
-        kaggle?: string;
-        huggingface?: string;
-    };
-
-    // Stats
-    stats?: {
-        github?: {
-            followers: number;
-            following: number;
-            public_repos: number;
-            total_stars: number;
-            languages?: {[key: string]: number};
-        };
-        leetcode?: {
-            username: string;
-            ranking: number;
-            total_solved: number;
-            easy_solved?: number;
-            medium_solved?: number;
-            hard_solved?: number;
-        };
-        kaggle?: {
-            username: string;
-        };
-        huggingface?: {
-            username: string;
-        };
-    };
-    
-    // Social Graph
-    followers?: string[];
-    following?: string[];
-    followRequests?: any[]; // Populated with User objects
-
-    profileSections: any[];
-}
+import { User } from '@/types/user';
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
@@ -86,19 +27,15 @@ export function useAuth() {
 
             try {
                 // Verify token and get fresh data
-                const response = await axios.get('http://localhost:5000/api/auth/me', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                
-                setUser(response.data);
-                localStorage.setItem('userInfo', JSON.stringify(response.data));
+                const { data } = await api.get('/auth/me');
+                setUser(data);
+                localStorage.setItem('userInfo', JSON.stringify(data));
             } catch (error) {
                 console.error("Auth check failed", error);
                 localStorage.removeItem('token');
-                localStorage.removeItem('userId');
+                localStorage.removeItem('userId'); 
                 localStorage.removeItem('userInfo');
                 setUser(null);
-                // Optional: router.push('/login'); 
             } finally {
                 setLoading(false);
             }
@@ -122,7 +59,7 @@ export function useAuth() {
          // Better: Let's extract the fetch logic.
          const token = localStorage.getItem('token');
          if(token) {
-            axios.get('http://localhost:5000/api/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+            api.get('/auth/me')
             .then(res => {
                 setUser(res.data);
                 localStorage.setItem('userInfo', JSON.stringify(res.data));

@@ -63,51 +63,80 @@ const UserSchema = new mongoose.Schema({
         enum: ['github', 'email'],
         default: 'github'
     },
-    stats: {
+    // Integration Maps (Auth & Sync Status)
+    integrations: {
         github: {
-            followers: { type: Number, default: 0 },
-            following: { type: Number, default: 0 },
-            public_repos: { type: Number, default: 0 },
-            total_stars: { type: Number, default: 0 },
-            languages: { type: Map, of: Number },
-            last_synced: Date
+            username: String,
+            accessToken: String, // Encrypted ideally
+            lastSync: Date,
+            stats: { type: mongoose.Schema.Types.Mixed, default: {} }
         },
         leetcode: {
             username: String,
-            ranking: { type: Number, default: 0 },
-            total_solved: { type: Number, default: 0 },
-            easy_solved: { type: Number, default: 0 },
-            medium_solved: { type: Number, default: 0 },
-            hard_solved: { type: Number, default: 0 },
-            last_synced: Date
+            lastSync: Date,
+            stats: { type: mongoose.Schema.Types.Mixed, default: {} }
+        },
+        codeforces: {
+            username: String,
+            lastSync: Date,
+            stats: { type: mongoose.Schema.Types.Mixed, default: {} }
         },
         kaggle: {
             username: String,
-            ranking: String,
-            competitions_medals: { type: Number, default: 0 },
-            datasets_medals: { type: Number, default: 0 },
-            notebooks_medals: { type: Number, default: 0 },
-            last_synced: Date
+            apiKey: String, // Encrypted
+            lastSync: Date,
+            stats: { type: mongoose.Schema.Types.Mixed, default: {} }
         },
         huggingface: {
             username: String,
-            likes: { type: Number, default: 0 },
-            models: { type: Number, default: 0 },
-            datasets: { type: Number, default: 0 },
-            last_synced: Date
+            accessToken: String,
+            lastSync: Date,
+            stats: { type: mongoose.Schema.Types.Mixed, default: {} }
+        },
+        stackoverflow: {
+            userId: String,
+            lastSync: Date,
+            stats: { type: mongoose.Schema.Types.Mixed, default: {} }
+        }, 
+        gitlab: {
+            username: String,
+            accessToken: String,
+            lastSync: Date,
+            stats: { type: mongoose.Schema.Types.Mixed, default: {} }
         }
     },
-    skills: [{
-        type: String,
-        trim: true
+
+    // Pillar 2: Tech-Native Identity
+    techStack: [{
+        name: { type: String, required: true }, // "React", "Rust"
+        proficiency: { type: Number, default: 0 }, // 0-100 calculated from usage
+        category: { type: String, enum: ['frontend', 'backend', 'ml', 'devops', 'mobile', 'other', 'language'] },
+        icon: String
     }],
-    projects: [{
+
+    developerProfile: {
+        title: { type: String }, // "Systems Engineer"
+        bio: { type: String }, // Markdown enabled
+        pinnedItems: [{
+            type: { type: String, enum: ['repo', 'pr', 'notebook', 'model', 'post'] },
+            platform: String,
+            url: String,
+            title: String,
+            description: String,
+            thumbnail: String
+        }]
+    },
+
+    // Legacy Support (Optional overlap with Integrations)
+    stats: { type: mongoose.Schema.Types.Mixed, default: {} },
+    skills: [String],
+    projects: [new mongoose.Schema({
         title: { type: String, required: true },
         description: String,
         link: String,
         tags: [String],
         image: String
-    }],
+    }, { timestamps: true })],
     certificates: [{
         name: { type: String, required: true },
         issuer: { type: String, required: true },

@@ -4,6 +4,9 @@ import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Mail, Calendar, MapPin, ExternalLink, Github, Linkedin, Code, Award, Briefcase, Users, UserCheck, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ActivityHeatmap from '@/components/profile/ActivityHeatmap';
+import TechStackDisplay from '@/components/profile/TechStackDisplay';
+import PinnedShowcase from '@/components/profile/PinnedShowcase';
 
 export default function ProfilePage() {
     const { user, loading } = useAuth();
@@ -81,8 +84,27 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Stats & Skills Grid */}
-                <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Dynamic Content Grid */}
+                <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+                    
+                    {/* Left Column: Stack & Heatmap */}
+                    <div className="lg:col-span-3 space-y-8">
+                        {/* 1. Activity Heatmap (Full Width) */}
+                        <ActivityHeatmap username={user.username} />
+                        
+                        {/* 2. Pinned Showcase */}
+                        <PinnedShowcase 
+                            pinnedItems={user.developerProfile?.pinnedItems || []} 
+                            isOwnProfile={true}
+                            onUpdate={() => window.location.reload()}
+                        />
+                    </div>
+
+                    {/* Stats & Skills were here. Let's reorganize. */}
+                </div>
+
+                {/* Stats & Skills Grid (Moved Down) */}
+                 <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
                     
                     {/* Stats */}
                     <div className="bg-[hsl(var(--ide-sidebar))]/50 backdrop-blur-md border border-[hsl(var(--ide-border))] rounded-lg p-6 hover:border-gray-600 transition-colors">
@@ -128,45 +150,14 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* Skills */}
-                    <div className="lg:col-span-2 bg-[hsl(var(--ide-sidebar))]/50 backdrop-blur-md border border-[hsl(var(--ide-border))] rounded-lg p-6 hover:border-gray-600 transition-colors flex flex-col">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-gray-400 text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-sm bg-[hsl(var(--accent))]" /> Expertise
-                            </h3>
-                            <button 
-                                onClick={() => router.push('/settings')} // Redirect to settings to add skills
-                                className="w-8 h-8 flex items-center justify-center rounded-md bg-[hsl(var(--ide-bg))] border border-[hsl(var(--ide-border))] text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
-                            >
-                                <Plus size={16} />
-                            </button>
-                        </div>
+                    {/* Tech Stack (Replaces Metadata Skills) */}
+                    <div className="lg:col-span-2">
+                         <TechStackDisplay skills={user.skills} />
+                    </div>
 
-                        <div className="flex-1">
-                            {user.skills && user.skills.length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                    {user.skills.map((skill: string) => (
-                                        <span 
-                                            key={skill} 
-                                            className="px-3 py-1.5 bg-[hsl(var(--ide-bg))] text-gray-300 rounded-md border border-[hsl(var(--ide-border))] text-sm font-medium shadow-sm hover:border-gray-500 hover:text-white transition-colors cursor-default"
-                                        >
-                                            {skill}
-                                        </span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="h-full min-h-[120px] rounded-lg border-2 border-dashed border-gray-700/50 flex flex-col items-center justify-center text-center p-6 bg-black/10 hover:bg-black/20 transition-colors group cursor-pointer" onClick={() => router.push('/settings')}>
-                                    <div className="w-10 h-10 rounded-md bg-gray-800 flex items-center justify-center text-gray-500 group-hover:text-cyan-400 group-hover:scale-110 transition-all mb-3">
-                                        <Plus size={20} />
-                                    </div>
-                                    <p className="text-gray-400 font-medium group-hover:text-gray-300">Add your skills to get discovered</p>
-                                    <p className="text-xs text-gray-600 mt-1 group-hover:text-gray-500">Java, React, Python, etc.</p>
-                                </div>
-                            )}
-                        </div>
-                        
-                        {/* Quick Actions */}
-                         <div className="mt-8 pt-6 border-t border-[hsl(var(--ide-border))] grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="lg:col-span-3">
+                        {/* Quick Actions moved to bottom full width if needed, or keep in sidebar */}
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                              <button 
                                 onClick={() => router.push('/projects')}
                                 className="flex items-center justify-between p-4 rounded-md bg-gradient-to-r from-cyan-900/10 to-transparent border border-cyan-900/20 hover:border-cyan-500/30 group transition-all"

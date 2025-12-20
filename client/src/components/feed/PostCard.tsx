@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api, { BASE_URL } from '@/lib/api';
 import Link from 'next/link';
 import { MessageSquare, ThumbsUp, Send, Globe, MoreHorizontal, Loader2, Trash2, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -49,13 +49,13 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
   const { user } = useAuth();
   const [post, setPost] = useState(initialPost);
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
-  const [commentTree, setCommentTree] = useState<any[]>([]);
+  const [commentTree, setCommentTree] = useState<Comment[]>([]);
 
   useEffect(() => {
     if (comments.length) {
@@ -66,11 +66,17 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
   const buildCommentTree = (flatComments: Comment[]) => {
     const map: Record<string, Comment> = {};
     const roots: Comment[] = [];
-    flatComments.forEach((c) => {
-      c.children = [];
+    // Deep clone to avoid mutating state directly during re-renders if causing issues, 
+    // but here we are building a new tree view. 
+    // Warning: Mutating objects in 'map' that refer to 'flatComments' elements might be mutating state if 'flatComments' is state.
+    // Better to map to new objects.
+    const commentsCopy = flatComments.map(c => ({...c, children: []}));
+    
+    commentsCopy.forEach((c) => {
       map[c._id] = c;
     });
-    flatComments.forEach((c) => {
+    
+    commentsCopy.forEach((c) => {
       if (c.parentComment) {
         const parent = map[c.parentComment];
         if (parent) {
@@ -83,7 +89,6 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
     });
     return roots;
   };
-
   const renderComment = (comment: Comment, depth = 0) => {
     const isCommentLiked = user && comment.upvotes?.includes(user._id);
     const canDelete = user && comment.author && comment.author._id?.toString() === user._id.toString();
@@ -162,8 +167,7 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
     const newLikes = isLiked ? post.likes.filter((id) => id !== user._id) : [...(post.likes || []), user._id];
     setPost({ ...post, likes: newLikes });
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/posts/${post._id}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await api.post(`/posts/${post._id}/like`, {});
     } catch (error) {
       console.error('Like failed', error);
     }
@@ -175,7 +179,7 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
       if (comments.length === 0) {
         setCommentsLoading(true);
         try {
-          const { data } = await axios.get(`http://localhost:5000/api/posts/${post._id}/comments`);
+          const { data } = await api.get(`/posts/${post._id}/comments`);
           setComments(data);
         } catch (error) {
           console.error('Failed to fetch comments', error);
@@ -193,8 +197,7 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
     if (!user || !newComment.trim()) return;
     setIsSubmittingComment(true);
     try {
-      const token = localStorage.getItem('token');
-      const { data } = await axios.post(`http://localhost:5000/api/posts/${post._id}/comments`, { content: newComment }, { headers: { Authorization: `Bearer ${token}` } });
+      const { data } = await api.post(`/posts/${post._id}/comments`, { content: newComment });
       setComments([data, ...comments]);
       setNewComment('');
       setPost({ ...post, commentsCount: (post.commentsCount || 0) + 1 });
@@ -210,8 +213,7 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
     if (!user || !replyContent.trim() || !replyingTo) return;
     setIsSubmittingComment(true);
     try {
-      const token = localStorage.getItem('token');
-      const { data } = await axios.post(`http://localhost:5000/api/posts/${post._id}/comments`, { content: replyContent, parentComment: replyingTo }, { headers: { Authorization: `Bearer ${token}` } });
+      const { data } = await api.post(`/posts/${post._id}/comments`, { content: replyContent, parentComment: replyingTo });
       setComments([data, ...comments]);
       setReplyContent('');
       setReplyingTo(null);
@@ -225,19 +227,16 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
   const handleCommentVote = async (commentId: string) => {
     if (!user) return;
     try {
-      const token = localStorage.getItem('token');
-      const { data } = await axios.post(`http://localhost:5000/api/posts/comments/${commentId}/vote`, { type: 'upvote' }, { headers: { Authorization: `Bearer ${token}` } });
+      const { data } = await api.post(`/posts/comments/${commentId}/vote`, { type: 'upvote' });
       setComments(comments.map((c) => (c._id === commentId ? data : c)));
     } catch (error) {
       console.error(error);
     }
   };
-
   const handleDeletePost = async () => {
     if (!user) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/posts/${post._id}`, { headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(`/posts/${post._id}`);
       if (onPostDeleted) onPostDeleted(post._id);
     } catch (error) {
       console.error('Delete post error:', error);
@@ -247,7 +246,7 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
   const handleDeleteComment = async (commentId: string, parentCommentId?: string) => {
     if (!user) return;
     
-    const getDescendantIds = (parentId: string, allComments: any[]): string[] => {
+    const getDescendantIds = (parentId: string, allComments: Comment[]): string[] => {
       const children = allComments.filter(c => c.parentComment === parentId);
       let ids = children.map(c => c._id);
       children.forEach(child => {
@@ -257,8 +256,7 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
     };
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/posts/${post._id}/comments/${commentId}`, { headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(`/posts/${post._id}/comments/${commentId}`);
       
       const idsToRemove = [commentId, ...getDescendantIds(commentId, comments)];
       const filtered = comments.filter((c) => !idsToRemove.includes(c._id));
@@ -336,7 +334,7 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
       {post.image && (
         <div className="mt-2 mb-2 border-y border-[hsl(var(--ide-border))] bg-black/50">
             <img 
-                src={`http://localhost:5000${post.image}`} 
+                src={`${BASE_URL}${post.image}`} 
                 alt="Post content" 
                 className="w-full h-auto object-cover max-h-[500px]"
             />

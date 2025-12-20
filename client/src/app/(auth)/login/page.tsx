@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Github, Code2, Terminal, Mail, Lock, User, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -31,10 +31,10 @@ export default function LoginPage() {
 
         try {
             const endpoint = authMode === 'login' 
-                ? 'http://localhost:5000/api/auth/login'
-                : 'http://localhost:5000/api/auth/register';
+                ? '/auth/login'
+                : '/auth/register';
             
-            const response = await axios.post(endpoint, formData);
+            const response = await api.post(endpoint, formData);
             
             const { token, _id } = response.data;
             localStorage.setItem('token', token);

@@ -161,6 +161,42 @@ const updateUserProfile = async (req, res) => {
     }
 };
 
+// @desc    Add a new project (Atomic Push)
+// @route   POST /api/users/profile/projects
+// @access  Private
+const addProject = async (req, res) => {
+    try {
+        const { title, description, link, tags, image } = req.body;
+
+        if (!title || !description) {
+            return res.status(400).json({ message: 'Title and Description are required' });
+        }
+
+        const newProject = {
+            title,
+            description,
+            link: link || '',
+            tags: tags || [],
+            image: image || null
+        };
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id, 
+            { $push: { projects: newProject } },
+            { new: true } // Return updated user
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(201).json(user.projects);
+    } catch (error) {
+        console.error('Add Project Error:', error);
+        res.status(500).json({ message: 'Server error while adding project' });
+    }
+};
+
 // @desc    Get project by ID
 // @route   GET /api/users/:userId/projects/:projectId
 // @access  Public
@@ -359,6 +395,113 @@ const getUserByUsername = async (req, res) => {
     }
 };
 
+// Get User Heatmap (Last 365 Days)
+const getUserHeatmap = async (req, res) => {
+    try {
+        const user = await User.findOne({ username: req.params.username });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const UnifiedEvent = require('../models/UnifiedEvent');
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+        const events = await UnifiedEvent.aggregate([
+            {
+                $match: {
+                    user: user._id,
+                    timestamp: { $gte: oneYearAgo }
+                }
+            },
+            {
+                $project: {
+                    date: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+                    score: 1
+                }
+            },
+            {
+                $group: {
+                    _id: "$date",
+                    count: { $sum: 1 }, // Total events count
+                    score: { $sum: "$score" } // Weighted score
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // Transform to expected format { date: "YYYY-MM-DD", count: N, score: M }
+        const heatmapData = events.map(e => ({
+            date: e._id,
+            count: e.count,
+            score: e.score
+        }));
+
+        res.json(heatmapData);
+    } catch (error) {
+        console.error('Heatmap Error:', error);
+        res.status(500).json({ message: 'Server error fetching heatmap' });
+    }
+};
+
+// @desc    Add pinned item to user profile
+// @route   POST /api/users/profile/pin
+// @access  Private
+const addPinnedItem = async (req, res) => {
+    try {
+        const { type, platform, url, title, description, thumbnail } = req.body;
+        const user = await User.findById(req.user._id);
+        
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        // Validate max 6 pinned items
+        if (!user.developerProfile) user.developerProfile = {};
+        if (!user.developerProfile.pinnedItems) user.developerProfile.pinnedItems = [];
+        
+        if (user.developerProfile.pinnedItems.length >= 6) {
+            return res.status(400).json({ message: 'Maximum 6 pinned items allowed' });
+        }
+        
+        // Add new pinned item
+        user.developerProfile.pinnedItems.push({
+            type,
+            platform,
+            url,
+            title,
+            description,
+            thumbnail
+        });
+        
+        await user.save();
+        res.json({ message: 'Item pinned successfully', pinnedItems: user.developerProfile.pinnedItems });
+    } catch (error) {
+        console.error('Add Pin Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Remove pinned item from user profile
+// @route   DELETE /api/users/profile/pin/:index
+// @access  Private
+const removePinnedItem = async (req, res) => {
+    try {
+        const { index } = req.params;
+        const user = await User.findById(req.user._id);
+        
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        if (!user.developerProfile?.pinnedItems || !user.developerProfile.pinnedItems[index]) {
+            return res.status(404).json({ message: 'Pinned item not found' });
+        }
+        
+        user.developerProfile.pinnedItems.splice(index, 1);
+        await user.save();
+        
+        res.json({ message: 'Item unpinned successfully', pinnedItems: user.developerProfile.pinnedItems });
+    } catch (error) {
+        console.error('Remove Pin Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = { 
     syncUserStats, 
     updateUserProfile, 
@@ -369,5 +512,9 @@ module.exports = {
     acceptFollowRequest,
     rejectFollowRequest,
     getUserByUsername,
-    getUserById
+    getUserById,
+    getUserHeatmap,
+    addPinnedItem,
+    removePinnedItem,
+    addProject
 };

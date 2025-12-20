@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -33,23 +33,17 @@ export function FollowButton({ targetUserId, initialIsFollowing, initialIsReques
         try {
             if (status === 'following') {
                 // Unfollow
-                await axios.put(`http://localhost:5000/api/users/${targetUserId}/unfollow`, {}, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
+                await api.put(`/users/${targetUserId}/unfollow`, {});
                 setStatus('none');
                 if (onFollowChange) onFollowChange('none');
             } else if (status === 'requested') {
                  // Cancel Request
-                 await axios.put(`http://localhost:5000/api/users/${targetUserId}/unfollow`, {}, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                }); // Same endpoint handles cancel
+                 await api.put(`/users/${targetUserId}/unfollow`, {}); // Same endpoint handles cancel
                 setStatus('none');
                 if (onFollowChange) onFollowChange('none');
             } else {
                 // Follow
-                 const res = await axios.put(`http://localhost:5000/api/users/${targetUserId}/follow`, {}, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                });
+                 const res = await api.put(`/users/${targetUserId}/follow`, {});
                 if (res.data.status === 'requested') {
                     setStatus('requested');
                     if (onFollowChange) onFollowChange('requested');

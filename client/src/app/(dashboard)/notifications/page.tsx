@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Bell, Heart, MessageSquare, Reply } from 'lucide-react';
@@ -23,9 +23,7 @@ export default function NotificationsPage() {
     useEffect(() => {
         if (user) {
             fetchNotifications();
-            const token = localStorage.getItem('token');
-            markAllRead(token);
-
+            markAllRead();
             // Poll for new notifications every 5 seconds
             const interval = setInterval(fetchNotifications, 5000);
             return () => clearInterval(interval);
@@ -34,10 +32,7 @@ export default function NotificationsPage() {
 
     const fetchNotifications = async () => {
         try {
-            const token = localStorage.getItem('token');
-            const { data } = await axios.get('http://localhost:5000/api/notifications', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const { data } = await api.get('/notifications');
             setNotifications(data);
         } catch (error) {
             console.error('Failed to fetch notifications', error);
@@ -46,15 +41,22 @@ export default function NotificationsPage() {
         }
     };
     
-    const markAllRead = async (token: string | null) => {
+    const markAllRead = async () => {
         try {
-            await axios.put('http://localhost:5000/api/notifications/read-all', {}, {
-                 headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put('/notifications/read-all', {});
         } catch (error) {
             console.error('Error marking read', error);
         }
-    }
+    };
+
+    const clearAll = async () => {
+        try {
+            await api.delete('/notifications');
+            setNotifications([]);
+        } catch (error) {
+            console.error('Error clearing notifications', error);
+        }
+    };
 
     if (authLoading || loading) {
         return (
@@ -68,9 +70,14 @@ export default function NotificationsPage() {
 
     return (
         <div className="max-w-[550px] mx-auto py-8 px-4 h-full overflow-y-auto">
-            <h1 className="text-2xl font-bold text-[hsl(var(--foreground))] mb-6 flex items-center gap-2">
-                <Bell className="text-[hsl(var(--primary))]" /> Notifications
-            </h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-[hsl(var(--foreground))] flex items-center gap-2">
+                    <Bell className="text-[hsl(var(--primary))]" /> Notifications
+                </h1>
+                <button onClick={clearAll} className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                    Clear All
+                </button>
+            </div>
 
             {/* Follow Requests Section */}
             {user && user.followRequests && user.followRequests.length > 0 && (
@@ -104,9 +111,7 @@ export default function NotificationsPage() {
                                     <button 
                                         onClick={async () => {
                                             try {
-                                                await axios.put(`http://localhost:5000/api/users/${requester._id}/accept`, {}, {
-                                                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                                                });
+                                                await api.put(`/users/${requester._id}/accept`, {});
                                                 refreshUser();
                                             } catch (e) {
                                                 console.error(e);
@@ -119,9 +124,7 @@ export default function NotificationsPage() {
                                     <button 
                                         onClick={async () => {
                                              try {
-                                                await axios.put(`http://localhost:5000/api/users/${requester._id}/reject`, {}, {
-                                                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                                                });
+                                                await api.put(`/users/${requester._id}/reject`, {});
                                                 refreshUser();
                                             } catch (e) {
                                                 console.error(e);

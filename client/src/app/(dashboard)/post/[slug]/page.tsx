@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import PostCard from '@/components/feed/PostCard';
 
@@ -16,7 +16,7 @@ export default function SinglePostPage() {
         if (slug) {
             const fetchPost = async () => {
                 try {
-                    const { data } = await axios.get(`http://localhost:5000/api/posts/${slug}`);
+                    const { data } = await api.get(`/posts/${slug}`);
                     setPost(data);
                 } catch (error) {
                     console.error('Failed to fetch post', error);

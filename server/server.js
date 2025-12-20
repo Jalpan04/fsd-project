@@ -25,6 +25,8 @@ app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
+app.use('/api/integrations', require('./routes/integrationRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes'));
 
 app.get('/', (req, res) => {
     res.send('MainBranch API is running...');

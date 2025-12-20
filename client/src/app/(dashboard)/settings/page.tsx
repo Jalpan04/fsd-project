@@ -4,8 +4,9 @@ import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, LogOut, RefreshCw, Edit, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import EditProfileModal from '@/components/profile/EditProfileModal';
+import IntegrationSettings from '@/components/profile/IntegrationSettings';
 
 export default function SettingsPage() {
     const { user, loading, logout } = useAuth();
@@ -23,10 +24,7 @@ export default function SettingsPage() {
     const handleSyncStats = async () => {
         setIsSyncing(true);
         try {
-            const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/api/users/sync-stats', {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post('/users/sync-stats', {});
             alert('Stats synced successfully!');
             window.location.reload(); 
         } catch (error) {
@@ -52,11 +50,14 @@ export default function SettingsPage() {
     if (!user) return null;
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <header className="mb-8">
+        <div className="p-8 max-w-4xl mx-auto space-y-8">
+            <header>
                 <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
                 <p className="text-gray-400">Manage your account preferences and profile.</p>
             </header>
+
+            {/* Pillar 1: Integrations */}
+            <IntegrationSettings user={user} onUpdate={handleUpdateProfile} />
 
             <div className="space-y-6">
                 

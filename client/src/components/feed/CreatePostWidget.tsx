@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Image as ImageIcon, X, Send, Smile } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
+import ImageUpload from '@/components/shared/ImageUpload';
 
 interface CreatePostWidgetProps {
     onPostCreated?: () => void;
@@ -12,33 +13,10 @@ interface CreatePostWidgetProps {
 export default function CreatePostWidget({ onPostCreated }: CreatePostWidgetProps) {
     const { user } = useAuth();
     const [content, setContent] = useState('');
-    const [image, setImage] = useState<File | null>(null);
-    const [preview, setPreview] = useState<string | null>(null);
+    const [image, setImage] = useState(''); // URL string
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [isExpanded, setIsExpanded] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImage(file);
-            const objectUrl = URL.createObjectURL(file);
-            setPreview(objectUrl);
-            setIsExpanded(true); // Auto expand if image added
-        }
-    };
-
-    const removeImage = () => {
-        setImage(null);
-        if (preview) {
-            URL.revokeObjectURL(preview);
-            setPreview(null);
-        }
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,31 +29,22 @@ export default function CreatePostWidget({ onPostCreated }: CreatePostWidgetProp
         setLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-            const formData = new FormData();
-            formData.append('title', 'Untitled'); // Optional title
-            formData.append('content', content);
-            if (image) {
-                formData.append('image', image);
-            }
+            const payload = {
+                content,
+                image: image // Now sending the actual uploaded path
+            };
 
-            await axios.post('http://localhost:5000/api/posts', formData, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            // Reset form
-            setContent('');
-            removeImage();
-            setIsExpanded(false);
+            await api.post('/posts', payload);
             
+            setContent('');
+            setImage('');
+            setIsExpanded(false); 
             if (onPostCreated) {
                 onPostCreated();
             }
-        } catch (err: any) {
-            console.error('Create Post Failed:', err);
-            setError(err.response?.data?.message || err.message || 'Failed to create post');
+        } catch (err: any) { 
+            console.error('Create Post Failed:', err); 
+            setError(err.response?.data?.message || err.message || 'Failed to create post'); 
         } finally {
             setLoading(false);
         }
@@ -110,17 +79,14 @@ export default function CreatePostWidget({ onPostCreated }: CreatePostWidgetProp
                             />
                         </div>
 
-                        {/* Image Preview */}
-                        {preview && (
-                            <div className="relative mt-3 rounded-lg overflow-hidden border border-gray-700/50 group w-fit max-w-full">
-                                <img src={preview} alt="Preview" className="max-h-[300px] object-cover" />
-                                <button 
-                                    type="button"
-                                    onClick={removeImage}
-                                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-full backdrop-blur-sm transition-colors opacity-0 group-hover:opacity-100"
-                                >
-                                    <X size={14} />
-                                </button>
+                        {/* Image Upload Component - Only show when expanded */}
+                        {isExpanded && (
+                            <div className="mt-4">
+                                <ImageUpload 
+                                    value={image} 
+                                    onChange={setImage} 
+                                    placeholder="Add an image to your post"
+                                />
                             </div>
                         )}
 
@@ -128,27 +94,7 @@ export default function CreatePostWidget({ onPostCreated }: CreatePostWidgetProp
                         {isExpanded && (
                             <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-800/50 animate-in fade-in slide-in-from-top-1 duration-200">
                                 <div className="flex gap-2">
-                                    <button 
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="p-2 text-cyan-400 hover:bg-cyan-900/10 rounded-full transition-colors"
-                                        title="Add Image"
-                                    >
-                                        <ImageIcon size={20} />
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10 rounded-full transition-colors"
-                                    >
-                                        <Smile size={20} />
-                                    </button>
-                                    <input 
-                                        type="file" 
-                                        ref={fileInputRef} 
-                                        onChange={handleImageChange} 
-                                        className="hidden" 
-                                        accept="image/*"
-                                    />
+                                    {/* Additional tools can go here */}
                                 </div>
 
                                 <div className="flex gap-2">
@@ -157,8 +103,7 @@ export default function CreatePostWidget({ onPostCreated }: CreatePostWidgetProp
                                         onClick={() => {
                                             setIsExpanded(false);
                                             setError('');
-                                            // Keep content if they just want to collapse? Or reset?
-                                            // Usually collapse means cancel or just verify. Let's keep content.
+                                            setImage(''); // Optional: clear image on cancel or keep? User might want to keep. Let's clear for "Close" feel.
                                         }}
                                         className="px-4 py-1.5 text-sm text-gray-400 hover:text-white transition-colors"
                                     >

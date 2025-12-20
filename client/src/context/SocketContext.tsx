@@ -1,8 +1,10 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/hooks/useAuth';
+import { BASE_URL } from '@/lib/api';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -29,7 +31,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (user) {
             const token = localStorage.getItem('token');
-            const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+            const newSocket = io(BASE_URL, {
                 query: { token },
                 transports: ['websocket'],
             });

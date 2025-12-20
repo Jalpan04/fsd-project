@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import Link from 'next/link';
 import { Search, Loader2, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,7 +32,7 @@ export default function SearchPage() {
 
         setLoading(true);
         try {
-             const response = await axios.get(`http://localhost:5000/api/users/search?query=${query}`);
+             const response = await api.get(`/users/search?query=${query}`);
              setResults(response.data);
              setSearched(true);
         } catch (error) {

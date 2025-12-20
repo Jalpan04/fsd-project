@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Award, Calendar, Link as LinkIcon, Building2 } from 'lucide-react';
 
@@ -20,18 +20,13 @@ export default function AddCertificatePage() {
         setIsLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-            const userRes = await axios.get('http://localhost:5000/api/auth/me', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const userRes = await api.get('/auth/me');
             const currentCerts = userRes.data.certificates || [];
             
             const newCert = { name, issuer, date, link };
             const updatedCerts = [...currentCerts, newCert];
 
-            await axios.put('http://localhost:5000/api/users/profile', { certificates: updatedCerts }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put('/users/profile', { certificates: updatedCerts });
 
             router.push('/profile');
         } catch (error) {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth'; // Re-use auth for token
 import ConversationList from '@/components/chat/ConversationList';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -22,12 +22,8 @@ export default function MessagesPage() {
         const fetchConversationsAndTarget = async () => {
             if (!user) return;
             try {
-                const token = localStorage.getItem('token');
-                
                 // 1. Fetch Conversations
-                const { data: convs } = await axios.get('http://localhost:5000/api/chat/conversations', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const { data: convs } = await api.get('/chat/conversations');
                 setConversations(convs);
 
                 // 2. Handle Initial User via Query Param
@@ -39,16 +35,8 @@ export default function MessagesPage() {
                     } else {
                         // Fetch user details to create a temporary "selectedUser" state
                         // Assuming we have an endpoint for this, or use search.
-                        // For simplicity, let's hit /api/users/:id or similar. 
-                        // If not, we might barely have enough info from just ID.
-                        // Let's assume /api/users/profile/:id exists? Or /api/users/:id?
-                        // Let's try /api/users/profile/id/:id if exists, otherwise assume we need to fetch.
-                        // Actually, I'll just skip detailed fetch if I don't know the endpoint and rely on what I have?
-                        // "SearchPage" has user data.
-                        // Let's use a quick fetch to User detail if possible.
-                        const { data: userData } = await axios.get(`http://localhost:5000/api/users/id/${initialUserId}`, { 
-                             headers: { Authorization: `Bearer ${token}` }
-                        });
+                        // We use the same endpoint as before but via api service.
+                        const { data: userData } = await api.get(`/users/id/${initialUserId}`);
                         setSelectedUser(userData);
                     }
                 }

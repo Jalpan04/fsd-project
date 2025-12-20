@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,13 +38,10 @@ export default function FeedPage() {
       setLoading(true);
       try {
         const endpoint = activeTab === 'following' 
-            ? 'http://localhost:5000/api/posts/following'
-            : 'http://localhost:5000/api/posts';
+            ? '/posts/following'
+            : '/posts';
             
-        const token = localStorage.getItem('token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-        const response = await axios.get(endpoint, { headers });
+        const response = await api.get(endpoint);
         setPosts(response.data);
       } catch (error) {
         console.error('Failed to fetch posts', error);

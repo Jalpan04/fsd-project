@@ -64,16 +64,18 @@ const getMessages = async (req, res) => {
 const sendMessage = async (req, res) => {
     try {
         const { recipientId, content } = req.body;
+        const image = req.file ? `/uploads/${req.file.filename}` : null;
 
-        if (!recipientId || !content) {
-            return res.status(400).json({ message: 'Recipient and content are required' });
+        if (!recipientId || (!content && !image)) {
+            return res.status(400).json({ message: 'Recipient and content or image are required' });
         }
 
         // 1. Create Message
         const newMessage = await Message.create({
             sender: req.user._id,
             recipient: recipientId,
-            content
+            content: content || '',
+            image
         });
 
         // 2. Find or Create Conversation

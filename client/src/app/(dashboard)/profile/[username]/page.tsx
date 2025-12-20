@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2, Mail, Calendar, Github, Linkedin, Code, Award, Briefcase, Users, UserCheck, MessageCircle } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
@@ -21,7 +21,7 @@ export default function PublicProfilePage() {
                 // If viewing own profile, redirect to private profile for editing capabilities? 
                 // Or just show public view. Let's show public view for consistent URL.
                 
-                const { data } = await axios.get(`http://localhost:5000/api/users/${username}`);
+                const { data } = await api.get(`/users/${username}`);
                 setUser(data);
             } catch (error) {
                 console.error("Failed to fetch user", error);

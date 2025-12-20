@@ -11,7 +11,11 @@ const {
     acceptFollowRequest,
     rejectFollowRequest,
     getUserByUsername,
-    getUserById
+    getUserById,
+    getUserHeatmap,
+    addPinnedItem,
+    removePinnedItem,
+    addProject
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -27,9 +31,13 @@ router.put('/:id/reject', protect, rejectFollowRequest);
 
 router.post('/sync-stats', protect, syncUserStats);
 router.put('/profile', protect, updateUserProfile);
+router.post('/profile/projects', protect, addProject);
+router.post('/profile/pin', protect, addPinnedItem);
+router.delete('/profile/pin/:index', protect, removePinnedItem);
 
 // Public Profile (Keep specific routes above this wildcard if any)
 router.get('/id/:id', getUserById);
+router.get('/:username/heatmap', getUserHeatmap); // Specific route first
 router.get('/:username', getUserByUsername);
 
 module.exports = router;

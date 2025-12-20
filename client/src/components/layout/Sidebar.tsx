@@ -19,16 +19,16 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, isActive, 
         <div 
             className={cn(
                 "w-12 h-12 flex items-center justify-center cursor-pointer transition-all duration-300 relative group rounded-md mx-2",
-                isActive ? "text-white bg-white/10" : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                isActive ? "text-primary-foreground bg-primary" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
             )}
             onClick={onClick}
         >
             <Icon size={24} strokeWidth={1.5} />
             {badge && (
-                 <div className="absolute top-2 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[hsl(var(--ide-activity))]" />
+                 <div className="absolute top-2 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-secondary" />
             )}
             {/* Tooltip */}
-            <div className="absolute left-14 bg-black border border-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+            <div className="absolute left-14 bg-popover border border-border text-popover-foreground text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-md">
                 {label}
             </div>
         </div>
@@ -65,7 +65,7 @@ export function Sidebar() {
     }, [pathname]);
 
     return (
-        <div className="w-16 h-full bg-[hsl(var(--ide-activity))] flex flex-col items-center py-4 border-r border-[hsl(var(--ide-border))] z-50 gap-2">
+        <div className="w-16 h-full bg-secondary flex flex-col items-center py-4 border-r border-border z-50 gap-2">
             {/* 1. Feed */}
             <Link href="/feed">
 
@@ -122,7 +122,7 @@ export function Sidebar() {
                 />
             </Link>
 
-             <div className="h-px w-8 bg-gray-800 my-2" />
+             <div className="h-px w-8 bg-border my-2" />
 
              {/* 5. Projects */}
             <Link href="/projects">

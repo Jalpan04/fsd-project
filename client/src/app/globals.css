@@ -4,83 +4,91 @@
 
 @layer base {
   :root {
+    /* LIGHT MODE (Fallback) */
     --background: 0 0% 100%;
     --foreground: 20 6% 10%;
 
     --card: 0 0% 100%;
     --card-foreground: 20 6% 10%;
+    
+    --activity: 0 0% 96%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 20 6% 10%;
 
-    --primary: 16 59% 41%; /* Burnt Terracotta #A64B2A */
-    --primary-foreground: 40 18% 87%;
+    --primary: 16 59% 41%; /* Burnt Terracotta */
+    --primary-foreground: 40 18% 95%;
 
-    --secondary: 24 6% 15%; /* Dark Walnut */
+    --secondary: 24 6% 15%;
     --secondary-foreground: 40 18% 87%;
 
-    --muted: 24 6% 15%;
+    --muted: 24 6% 90%;
     --muted-foreground: 24 6% 40%; 
 
-    --accent: 40 43% 73%; /* Champagne Gold #D7C49E */
+    --accent: 40 43% 73%; /* Champagne Gold */
     --accent-foreground: 20 6% 10%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 24 6% 20%;
-    --input: 24 6% 20%;
+    --border: 24 6% 85%;
+    --input: 24 6% 85%;
     --ring: 16 59% 41%;
 
     --radius: 0.5rem;
-
-    /* IDE Defaults (unused) */
-    --ide-bg: 0 0% 98%; 
-    --ide-sidebar: 0 0% 95%; 
-    --ide-activity: 0 0% 90%; 
-    --ide-border: 0 0% 90%; 
+    
+    /* Legacy override */
+    --ide-bg: 0 0% 100%;
+    --ide-sidebar: 0 0% 98%;
+    --ide-border: 0 0% 90%;
+    --ide-activity: 0 0% 95%;
   }
 
   .dark {
+    /* --- TECH-NATIVE DESIGN SYSTEM --- */
+    
     /* Smoky Jasper Background #1B1918 */
-    --background: 20 6% 10%; 
-    --foreground: 40 18% 87%; /* Soft Parchment #E5E0D8 */
+    --background: 24 6% 10%; 
+    --foreground: 40 18% 87%; /* Soft Parchment */
 
     /* Dark Walnut Surface #2A2725 */
-    --card: 24 6% 15%;
+    --card: 24 6% 16%;
     --card-foreground: 40 18% 87%;
+    
+    /* Deep Walnut Activity/Input #242120 */
+    --activity: 24 6% 13%; 
 
-    --popover: 24 6% 15%;
+    --popover: 24 6% 16%;
     --popover-foreground: 40 18% 87%;
 
-    /* Burnt Terracotta CTA #A64B2A - Using as Primary for Buttons */
+    /* Burnt Terracotta Action #A64B2A */
     --primary: 16 59% 41%; 
-    --primary-foreground: 40 18% 95%; /* Lighter parchment for contrast on button */
+    --primary-foreground: 40 18% 95%;
 
-    /* Deep Walnut for Secondary areas */
-    --secondary: 24 6% 20%; /* Slightly lighter than card for separation */
+    /* Deep Walnut Secondary */
+    --secondary: 24 6% 20%; 
     --secondary-foreground: 40 18% 87%;
 
-    --muted: 24 6% 20%; 
-    --muted-foreground: 40 10% 60%; /* Dimmed parchment */
+    --muted: 24 6% 20%;
+    --muted-foreground: 40 10% 60%;
 
-    /* Champagne Gold Accent #D7C49E */
+    /* Champagne Gold Highlights #D7C49E */
     --accent: 40 43% 73%; 
-    --accent-foreground: 20 6% 10%; /* Dark text on gold */
+    --accent-foreground: 20 6% 10%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 40 18% 87%;
 
-    /* Borders */
-    --border: 24 6% 22%; /* Lighter walnut */
+    /* Borders: Lighter Walnut #3A3632 */
+    --border: 24 6% 22%;
     --input: 24 6% 22%;
-    --ring: 40 43% 73%; /* Gold ring focus */
+    --ring: 40 43% 73%;
     
-    /* IDE Dark Mode Overrides - Custom Palette */
-    --ide-bg: 20 6% 10%; /* Smoky Jasper */
-    --ide-sidebar: 24 6% 15%; /* Dark Walnut */
-    --ide-activity: 24 6% 13%; /* Slightly Darker Walnut */
-    --ide-border: 24 6% 20%; /* Border Color */
+    /* Legacy Variable Mapping to New System */
+    --ide-bg: var(--background);
+    --ide-sidebar: var(--card);
+    --ide-activity: var(--activity);
+    --ide-border: var(--border);
   }
 }
 

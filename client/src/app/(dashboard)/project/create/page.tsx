@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Link as LinkIcon, Code2, Type } from 'lucide-react';
+import ImageUpload from '@/components/shared/ImageUpload';
 
 export default function AddProjectPage() {
     const router = useRouter();
@@ -14,43 +15,22 @@ export default function AddProjectPage() {
     const [description, setDescription] = useState('');
     const [link, setLink] = useState('');
     const [tags, setTags] = useState('');
-    const [image, setImage] = useState(''); // TODO: Implement Image Upload later if needed
+    const [image, setImage] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
         try {
-            const token = localStorage.getItem('token');
-            // Fetch current user projects first to append? 
-            // Actually the backend endpoint specific for *adding* would be better, 
-            // but currently we use PUT /profile which replaces.
-            // Let's rely on the backend to handle it or fetch-modify-save.
-            // Ideally backend should have POST /api/users/projects. 
-            // For now, I'll assume I need to fetch user, get projects, push, and save.
-            // WAIT, `updateUserProfile` in controller replaces the array: `if (req.body.projects) user.projects = req.body.projects;`
-            // This is dangerous without fetching first. 
-            // I should modify backend to allow $push, OR fetch here.
-            
-            // Let's implement a safe approach: fetch current profile first.
-            const userRes = await axios.get('http://localhost:5000/api/auth/me', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const currentProjects = userRes.data.projects || [];
-            
             const newProject = {
                 title,
                 description,
                 link,
                 tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-                image: image || null // Placeholder
+                image: image || null
             };
 
-            const updatedProjects = [...currentProjects, newProject];
-
-            await axios.put('http://localhost:5000/api/users/profile', { projects: updatedProjects }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post('/users/profile/projects', newProject);
 
             router.push('/profile');
         } catch (error) {
@@ -89,6 +69,11 @@ export default function AddProjectPage() {
                                 onChange={(e) => setTitle(e.target.value)}
                             />
                         </div>
+                    </div>
+
+                    <div>
+                         <label className="block text-sm font-medium text-gray-300 mb-2">Project Cover Image</label>
+                         <ImageUpload value={image} onChange={setImage} placeholder="Upload Project Cover" />
                     </div>
 
                     <div>
