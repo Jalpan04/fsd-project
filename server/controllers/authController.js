@@ -95,8 +95,10 @@ const githubAuth = async (req, res) => {
 const getMe = async (req, res) => {
     // Re-fetch user to ensure populated fields
     const user = await User.findById(req.user._id)
-        .populate('followRequests', 'username displayName avatarUrl headline');
-        
+        .populate('followRequests', 'username displayName avatarUrl headline')
+        .populate('followers', 'username displayName avatarUrl headline')
+        .populate('following', 'username displayName avatarUrl headline');
+
     res.status(200).json(user);
 };
 
@@ -123,9 +125,9 @@ const registerUser = async (req, res) => {
 
         // Calculate default profile sections
         const defaultProfileSections = [
-             { type: 'about', order: 0, isVisible: true },
-             { type: 'skills', order: 1, isVisible: true },
-             { type: 'projects', order: 2, isVisible: true }
+            { type: 'about', order: 0, isVisible: true },
+            { type: 'skills', order: 1, isVisible: true },
+            { type: 'projects', order: 2, isVisible: true }
         ];
 
         // Create user (githubId is required by schema, we need to handle this)
@@ -168,7 +170,7 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email }).select('+password');
 
         if (user && (await bcrypt.compare(password, user.password))) {
-             res.json({
+            res.json({
                 _id: user.id,
                 username: user.username,
                 email: user.email,
@@ -179,8 +181,8 @@ const loginUser = async (req, res) => {
             res.status(401).json({ message: 'Invalid credentials' });
         }
     } catch (error) {
-         console.error(error);
-         res.status(500).json({ message: 'Server error' });
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
     }
 }
 
