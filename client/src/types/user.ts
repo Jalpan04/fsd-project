@@ -10,11 +10,11 @@ export interface User {
     website?: string;
     skills?: string[];
     createdAt?: string;
-    
+
     // Arrays
-    projects?: Project[]; 
+    projects?: Project[];
     certificates?: Certificate[];
-    
+
     // Social Links
     socials?: {
         github?: string;
@@ -33,7 +33,8 @@ export interface User {
             following: number;
             public_repos: number;
             total_stars: number;
-            languages?: {[key: string]: number};
+            languages?: { [key: string]: number };
+            username?: string;
         };
         leetcode?: {
             username: string;
@@ -50,11 +51,49 @@ export interface User {
             username: string;
         };
     };
-    
+
     // Social Graph
-    followers?: string[];
-    following?: string[];
-    followRequests?: User[]; // Or ID strings, but often populated
+    followers?: User[];
+    following?: User[];
+    followRequests?: User[];
+
+    // Integrations
+    integrations?: {
+        github?: {
+            username?: string;
+            accessToken?: string;
+            lastSync?: string;
+            stats?: any;
+        };
+        leetcode?: {
+            username?: string;
+            lastSync?: string;
+            stats?: {
+                ranking: number;
+                total_solved: number;
+                easy_solved: number;
+                medium_solved: number;
+                hard_solved: number;
+                total_questions?: number;
+                easy_questions?: number;
+                medium_questions?: number;
+                hard_questions?: number;
+                last_synced: string;
+            };
+        };
+        kaggle?: {
+            username?: string;
+            apiKey?: string;
+            lastSync?: string;
+            stats?: any;
+        };
+        huggingface?: {
+            username?: string;
+            accessToken?: string;
+            lastSync?: string;
+            stats?: any;
+        };
+    };
 
     profileSections?: ProfileSection[];
 }

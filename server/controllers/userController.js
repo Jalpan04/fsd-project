@@ -9,17 +9,27 @@ const axios = require('axios');
 // @access  Private
 const syncUserStats = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).select('+accessToken'); 
-        
+        const user = await User.findById(req.user._id).select('+accessToken');
+
         const updates = {};
         let statsUpdated = false;
 
         // 1. Sync LeetCode
-        if (req.body.leetcodeUsername || user.stats?.leetcode?.username) {
+        // 1. Sync LeetCode
+        const lcUsername = req.body.leetcodeUsername || user.integrations?.leetcode?.username || user.stats?.leetcode?.username;
+
+        if (lcUsername) {
             try {
-                const username = req.body.leetcodeUsername || user.stats.leetcode.username;
-                const lcStats = await fetchLeetCodeStats(username);
+                const lcStats = await fetchLeetCodeStats(lcUsername);
+
+                // Update integration stats (Primary)
+                updates['integrations.leetcode.stats'] = lcStats;
+                updates['integrations.leetcode.lastSync'] = new Date();
+                updates['integrations.leetcode.username'] = lcUsername;
+
+                // Legacy backward compatibility
                 updates['stats.leetcode'] = lcStats;
+
                 statsUpdated = true;
             } catch (error) {
                 console.error('LeetCode sync failed:', error.message);
@@ -29,12 +39,12 @@ const syncUserStats = async (req, res) => {
         // 2. Sync GitHub
         // 2a. Public Basic
         if ((user.authProvider === 'github' || user.githubId || user.username)) {
-             try {
+            try {
                 if (!req.body.githubAccessToken && !user.accessToken) {
-                    const targetUser = user.githubId || user.username; 
-                    const ghRes = await axios.get(`https://api.github.com/users/${targetUser}`); 
+                    const targetUser = user.githubId || user.username;
+                    const ghRes = await axios.get(`https://api.github.com/users/${targetUser}`);
                     const { followers, following, public_repos } = ghRes.data;
-                    
+
                     updates['stats.github'] = {
                         ...(user.stats?.github || {}),
                         followers,
@@ -44,28 +54,28 @@ const syncUserStats = async (req, res) => {
                     };
                     statsUpdated = true;
                 }
-             } catch (e) { }
+            } catch (e) { }
         }
-        
+
         // 2b. Deep Sync (GitHub)
         if (req.body.githubAccessToken || user.accessToken) {
-             try {
+            try {
                 const token = req.body.githubAccessToken || user.accessToken;
                 console.log('Attempting GitHub Deep Sync...');
                 const ghStats = await fetchGitHubStats(token);
-                
+
                 updates['stats.github'] = {
                     ...ghStats,
                     last_synced: new Date()
                 };
-                
+
                 if (req.body.githubAccessToken) {
                     updates['accessToken'] = req.body.githubAccessToken;
                 }
                 statsUpdated = true;
             } catch (e) {
-                 console.error('GitHub Deep Sync Failed:', e.message);
-             }
+                console.error('GitHub Deep Sync Failed:', e.message);
+            }
         }
 
         // 3. Sync HuggingFace
@@ -73,11 +83,11 @@ const syncUserStats = async (req, res) => {
             try {
                 const hfUsername = req.body.huggingfaceUsername || user.stats.huggingface.username;
                 const hfStats = await fetchHuggingFaceStats(hfUsername);
-                
+
                 updates['stats.huggingface'] = hfStats;
                 statsUpdated = true;
             } catch (error) {
-                 console.error('HuggingFace sync failed:', error.message);
+                console.error('HuggingFace sync failed:', error.message);
             }
         }
 
@@ -89,7 +99,7 @@ const syncUserStats = async (req, res) => {
             );
             return res.json(updatedUser);
         } else {
-             return res.json(user); // No updates made
+            return res.json(user); // No updates made
         }
 
     } catch (error) {
@@ -110,7 +120,7 @@ const updateUserProfile = async (req, res) => {
             user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
             user.displayName = req.body.displayName || user.displayName;
             if (req.body.skills) user.skills = req.body.skills;
-            
+
             // LeetCode Username
             if (req.body.leetcodeUsername) {
                 if (!user.stats) user.stats = {};
@@ -118,37 +128,37 @@ const updateUserProfile = async (req, res) => {
                 user.stats.leetcode.username = req.body.leetcodeUsername;
             }
 
-             // Kaggle
-             if (req.body.kaggleUsername) {
+            // Kaggle
+            if (req.body.kaggleUsername) {
                 if (!user.stats) user.stats = {};
                 if (!user.stats.kaggle) user.stats.kaggle = {};
                 user.stats.kaggle.username = req.body.kaggleUsername;
                 if (!user.socials) user.socials = {};
                 user.socials.kaggle = `https://kaggle.com/${req.body.kaggleUsername}`;
-           }
+            }
 
-           // HuggingFace
-           if (req.body.huggingfaceUsername) {
+            // HuggingFace
+            if (req.body.huggingfaceUsername) {
                 if (!user.stats) user.stats = {};
                 if (!user.stats.huggingface) user.stats.huggingface = {};
                 user.stats.huggingface.username = req.body.huggingfaceUsername;
                 if (!user.socials) user.socials = {};
                 user.socials.huggingface = `https://huggingface.co/${req.body.huggingfaceUsername}`;
-           }
+            }
 
-           // Socials
-           if (req.body.blogUrl) {
-               if (!user.socials) user.socials = {};
-               user.socials.blog = req.body.blogUrl;
-           }
+            // Socials
+            if (req.body.blogUrl) {
+                if (!user.socials) user.socials = {};
+                user.socials.blog = req.body.blogUrl;
+            }
 
-           // Projects & Certificates
-           if (req.body.projects) {
-               user.projects = req.body.projects;
-           }
-           if (req.body.certificates) {
-               user.certificates = req.body.certificates;
-           }
+            // Projects & Certificates
+            if (req.body.projects) {
+                user.projects = req.body.projects;
+            }
+            if (req.body.certificates) {
+                user.certificates = req.body.certificates;
+            }
 
             const updatedUser = await user.save();
             res.json(updatedUser);
@@ -181,7 +191,7 @@ const addProject = async (req, res) => {
         };
 
         const user = await User.findByIdAndUpdate(
-            req.user._id, 
+            req.user._id,
             { $push: { projects: newProject } },
             { new: true } // Return updated user
         );
@@ -204,15 +214,15 @@ const getProjectById = async (req, res) => {
     try {
         const { userId, projectId } = req.params;
         const user = await User.findById(userId);
-        
+
         if (!user || !user.projects) {
             return res.status(404).json({ message: 'Project not found' });
         }
 
         const project = user.projects.id(projectId);
-        
+
         if (!project) {
-             return res.status(404).json({ message: 'Project not found' });
+            return res.status(404).json({ message: 'Project not found' });
         }
 
         // Return user minimal info + project
@@ -242,7 +252,7 @@ const searchUsers = async (req, res) => {
             $or: [
                 { username: { $regex: query, $options: 'i' } },
                 { displayName: { $regex: query, $options: 'i' } },
-                { 'skills': { $regex: query, $options: 'i' } } 
+                { 'skills': { $regex: query, $options: 'i' } }
             ]
         }).select('username displayName avatarUrl headline skills followers following followRequests');
 
@@ -326,7 +336,7 @@ const acceptFollowRequest = async (req, res) => {
         }
 
         // Move from requests to followers
-        await currentUser.updateOne({ 
+        await currentUser.updateOne({
             $pull: { followRequests: requesterId },
             $push: { followers: requesterId }
         });
@@ -449,17 +459,17 @@ const addPinnedItem = async (req, res) => {
     try {
         const { type, platform, url, title, description, thumbnail } = req.body;
         const user = await User.findById(req.user._id);
-        
+
         if (!user) return res.status(404).json({ message: 'User not found' });
-        
+
         // Validate max 6 pinned items
         if (!user.developerProfile) user.developerProfile = {};
         if (!user.developerProfile.pinnedItems) user.developerProfile.pinnedItems = [];
-        
+
         if (user.developerProfile.pinnedItems.length >= 6) {
             return res.status(400).json({ message: 'Maximum 6 pinned items allowed' });
         }
-        
+
         // Add new pinned item
         user.developerProfile.pinnedItems.push({
             type,
@@ -469,7 +479,7 @@ const addPinnedItem = async (req, res) => {
             description,
             thumbnail
         });
-        
+
         await user.save();
         res.json({ message: 'Item pinned successfully', pinnedItems: user.developerProfile.pinnedItems });
     } catch (error) {
@@ -485,16 +495,16 @@ const removePinnedItem = async (req, res) => {
     try {
         const { index } = req.params;
         const user = await User.findById(req.user._id);
-        
+
         if (!user) return res.status(404).json({ message: 'User not found' });
-        
+
         if (!user.developerProfile?.pinnedItems || !user.developerProfile.pinnedItems[index]) {
             return res.status(404).json({ message: 'Pinned item not found' });
         }
-        
+
         user.developerProfile.pinnedItems.splice(index, 1);
         await user.save();
-        
+
         res.json({ message: 'Item unpinned successfully', pinnedItems: user.developerProfile.pinnedItems });
     } catch (error) {
         console.error('Remove Pin Error:', error);
@@ -502,12 +512,12 @@ const removePinnedItem = async (req, res) => {
     }
 };
 
-module.exports = { 
-    syncUserStats, 
-    updateUserProfile, 
-    getProjectById, 
-    searchUsers, 
-    followUser, 
+module.exports = {
+    syncUserStats,
+    updateUserProfile,
+    getProjectById,
+    searchUsers,
+    followUser,
     unfollowUser,
     acceptFollowRequest,
     rejectFollowRequest,

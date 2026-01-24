@@ -31,18 +31,28 @@ const fetchLeetCodeStats = async (username) => {
         }
 
         const stats = data.matchedUser.submitStats.acSubmissionNum;
-        const total = stats.find(s => s.difficulty === 'All').count;
-        const easy = stats.find(s => s.difficulty === 'Easy').count;
-        const medium = stats.find(s => s.difficulty === 'Medium').count;
-        const hard = stats.find(s => s.difficulty === 'Hard').count;
-        
+        const totalSolved = stats.find(s => s.difficulty === 'All').count;
+        const easySolved = stats.find(s => s.difficulty === 'Easy').count;
+        const mediumSolved = stats.find(s => s.difficulty === 'Medium').count;
+        const hardSolved = stats.find(s => s.difficulty === 'Hard').count;
+
+        const allQuestions = data.allQuestionsCount;
+        const totalQuestions = allQuestions.find(s => s.difficulty === 'All')?.count || 0;
+        const easyQuestions = allQuestions.find(s => s.difficulty === 'Easy')?.count || 0;
+        const mediumQuestions = allQuestions.find(s => s.difficulty === 'Medium')?.count || 0;
+        const hardQuestions = allQuestions.find(s => s.difficulty === 'Hard')?.count || 0;
+
         return {
             username,
             ranking: data.matchedUser.profile.ranking,
-            total_solved: total,
-            easy_solved: easy,
-            medium_solved: medium,
-            hard_solved: hard,
+            total_solved: totalSolved,
+            easy_solved: easySolved,
+            medium_solved: mediumSolved,
+            hard_solved: hardSolved,
+            total_questions: totalQuestions, // Added
+            easy_questions: easyQuestions,   // Added
+            medium_questions: mediumQuestions, // Added
+            hard_questions: hardQuestions,   // Added
             last_synced: new Date()
         };
 

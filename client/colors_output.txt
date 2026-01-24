@@ -1,0 +1,44 @@
+### Light Mode
+- **Background**: #FFFFFF
+- **Foreground**: #1B1918
+- **Card**: #FFFFFF
+- **Card Foreground**: #1B1918
+- **Activity**: #F5F5F5
+- **Popover**: #FFFFFF
+- **Popover Foreground**: #1B1918
+- **Primary**: #A64C2B
+- **Primary Foreground**: #F5F3F0
+- **Secondary**: #292624
+- **Secondary Foreground**: #E4E0D8
+- **Muted**: #E7E5E4
+- **Muted Foreground**: #6C6560
+- **Accent**: #D8C49D
+- **Accent Foreground**: #1B1918
+- **Destructive**: #EF4444
+- **Destructive Foreground**: #FAFAFA
+- **Border**: #DBD8D6
+- **Input**: #DBD8D6
+- **Ring**: #A64C2B
+
+### Dark Mode
+- **Background**: #1B1918
+- **Foreground**: #E4E0D8
+- **Card**: #2B2826
+- **Card Foreground**: #E4E0D8
+- **Activity**: #23211F
+- **Popover**: #2B2826
+- **Popover Foreground**: #E4E0D8
+- **Primary**: #A64C2B
+- **Primary Foreground**: #F5F3F0
+- **Secondary**: #363230
+- **Secondary Foreground**: #E4E0D8
+- **Muted**: #363230
+- **Muted Foreground**: #A39C8F
+- **Accent**: #D8C49D
+- **Accent Foreground**: #1B1918
+- **Destructive**: #7F1D1D
+- **Destructive Foreground**: #E4E0D8
+- **Border**: #3B3735
+- **Input**: #3B3735
+- **Ring**: #D8C49D
+

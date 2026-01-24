@@ -19,7 +19,7 @@ const syncGitHub = async (user) => {
     if (!user.integrations.github) user.integrations.github = {};
     const username = user.integrations.github.username;
     const accessToken = user.integrations.github.accessToken;
-    
+
     if (!username) throw new Error('GitHub username not linked');
 
     console.log(`[Sync] Starting GitHub sync for ${username}...`);
@@ -27,8 +27,8 @@ const syncGitHub = async (user) => {
     try {
         // Only use token if it's a valid format (starts with 'ghp_' or 'github_pat_' for new tokens, or is 40 chars hex for classic)
         const isValidToken = accessToken && (
-            accessToken.startsWith('ghp_') || 
-            accessToken.startsWith('github_pat_') || 
+            accessToken.startsWith('ghp_') ||
+            accessToken.startsWith('github_pat_') ||
             /^[a-f0-9]{40}$/i.test(accessToken)
         );
         const headers = isValidToken ? { Authorization: `Bearer ${accessToken}` } : {};
@@ -40,7 +40,7 @@ const syncGitHub = async (user) => {
         // Fetch Repos for Stars/Languages (Page 1 only for MVP)
         const reposRes = await axios.get(`https://api.github.com/users/${username}/repos?per_page=100`, { headers });
         const total_stars = reposRes.data.reduce((acc, repo) => acc + repo.stargazers_count, 0);
-        
+
         // Calculate Languages
         const languages = {};
         reposRes.data.forEach(repo => {
@@ -59,7 +59,7 @@ const syncGitHub = async (user) => {
 
         // 2. Fetch Activity Events (Last 90 days / 300 events limit by GitHub API)
         const eventsRes = await axios.get(`https://api.github.com/users/${username}/events/public?per_page=100`, { headers });
-        
+
         let newEventsCount = 0;
         for (const event of eventsRes.data) {
             try {
@@ -68,15 +68,15 @@ const syncGitHub = async (user) => {
                 if (exists) continue;
 
                 const score = calculateScore(event.type);
-                
+
                 // Safe Description Extraction
                 let description = null;
                 if (event.type === 'PushEvent' && event.payload.commits && event.payload.commits.length > 0) {
-                     description = event.payload.commits[0].message;
+                    description = event.payload.commits[0].message;
                 } else if (event.type === 'PullRequestEvent') {
-                     description = event.payload.pull_request?.title;
+                    description = event.payload.pull_request?.title;
                 } else if (event.type === 'IssueCommentEvent') {
-                     description = event.payload.comment?.body?.substring(0, 100);
+                    description = event.payload.comment?.body?.substring(0, 100);
                 }
 
                 const unifiedEvent = new UnifiedEvent({
@@ -92,7 +92,7 @@ const syncGitHub = async (user) => {
                     description: description,
                     payload: event.payload
                 });
-                
+
                 await unifiedEvent.save();
                 newEventsCount++;
             } catch (innerError) {
@@ -121,6 +121,7 @@ const syncLeetCode = async (user) => {
     try {
         const query = `
             query getUserProfile($username: String!) {
+                allQuestionsCount { difficulty count }
                 matchedUser(username: $username) {
                     username
                     submitStats: submitStatsGlobal {
@@ -136,29 +137,39 @@ const syncLeetCode = async (user) => {
             variables: { username }
         });
 
-        const data = response.data?.data?.matchedUser;
-        if (!data) throw new Error('LeetCode user not found');
+        const data = response.data?.data;
+        if (!data || !data.matchedUser) throw new Error('LeetCode user not found');
 
-        const stats = data.submitStats.acSubmissionNum;
-        const total = stats.find(s => s.difficulty === 'All').count;
-        const easy = stats.find(s => s.difficulty === 'Easy').count;
-        const medium = stats.find(s => s.difficulty === 'Medium').count;
-        const hard = stats.find(s => s.difficulty === 'Hard').count;
+        const matchedUser = data.matchedUser;
+        const submitStats = matchedUser.submitStats.acSubmissionNum;
+        const allQuestions = data.allQuestionsCount;
+
+        // Solved
+        const totalSolved = submitStats.find(s => s.difficulty === 'All')?.count || 0;
+        const easySolved = submitStats.find(s => s.difficulty === 'Easy')?.count || 0;
+        const mediumSolved = submitStats.find(s => s.difficulty === 'Medium')?.count || 0;
+        const hardSolved = submitStats.find(s => s.difficulty === 'Hard')?.count || 0;
+
+        // Total Available (Denominators)
+        const totalQuestions = allQuestions.find(s => s.difficulty === 'All')?.count || 0;
+        const easyQuestions = allQuestions.find(s => s.difficulty === 'Easy')?.count || 0;
+        const mediumQuestions = allQuestions.find(s => s.difficulty === 'Medium')?.count || 0;
+        const hardQuestions = allQuestions.find(s => s.difficulty === 'Hard')?.count || 0;
 
         user.integrations.leetcode.stats = {
-            ranking: data.profile.ranking,
-            total_solved: total,
-            easy_solved: easy,
-            medium_solved: medium,
-            hard_solved: hard,
+            ranking: matchedUser.profile.ranking,
+            total_solved: totalSolved,
+            easy_solved: easySolved,
+            medium_solved: mediumSolved,
+            hard_solved: hardSolved,
+            total_questions: totalQuestions,
+            easy_questions: easyQuestions,
+            medium_questions: mediumQuestions,
+            hard_questions: hardQuestions,
             last_synced: new Date()
         };
         user.integrations.leetcode.lastSync = new Date();
 
-        // Create a summary event for the sync (since we can't get individual submission history easily without session cookie)
-        // For MVP, we just update the stats. To be "Maximalist", we'd need recent submissions.
-        // Recent submissions query: recentSubmissionList(username: $username) { title timestamp statusDisplay }
-        
         await user.save();
         console.log(`[Sync] LeetCode Sync Complete for ${username}`);
         return { success: true, stats: user.integrations.leetcode.stats };
@@ -171,25 +182,25 @@ const syncLeetCode = async (user) => {
 const syncKaggle = async (user) => {
     const username = user.integrations?.kaggle?.username;
     const apiKey = user.integrations?.kaggle?.apiKey;
-    
+
     if (!username) throw new Error('Kaggle username not linked');
-    
+
     console.log(`[Sync] Starting Kaggle sync for ${username}...`);
-    
+
     try {
         // Kaggle Public API requires authentication
         // For MVP: We'll fetch public profile data without API key
         // With API key: Can fetch competitions, datasets, notebooks
-        
-        const headers = apiKey ? { 
+
+        const headers = apiKey ? {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
         } : {};
-        
+
         // Fetch public user profile (tier, rank, competitions)
         // Note: Kaggle API is limited, but we can try public endpoints
         const profileUrl = `https://www.kaggle.com/${username}`;
-        
+
         // For MVP: Store basic info
         // In production: Use official Kaggle API with proper authentication
         user.integrations.kaggle.stats = {
@@ -202,7 +213,7 @@ const syncKaggle = async (user) => {
             datasets: 0
         };
         user.integrations.kaggle.lastSync = new Date();
-        
+
         await user.save();
         console.log(`[Sync] Kaggle Sync Complete for ${username}`);
         return { success: true, stats: user.integrations.kaggle.stats };
@@ -215,20 +226,20 @@ const syncKaggle = async (user) => {
 const syncHuggingFace = async (user) => {
     const username = user.integrations?.huggingface?.username;
     const accessToken = user.integrations?.huggingface?.accessToken;
-    
+
     if (!username) throw new Error('Hugging Face username not linked');
-    
+
     console.log(`[Sync] Starting Hugging Face sync for ${username}...`);
-    
+
     try {
-        const headers = accessToken ? { 
-            'Authorization': `Bearer ${accessToken}` 
+        const headers = accessToken ? {
+            'Authorization': `Bearer ${accessToken}`
         } : {};
-        
+
         // Fetch models directly (user endpoint may not exist for all users)
         const modelsRes = await axios.get(`https://huggingface.co/api/models?author=${username}&limit=100`, { headers });
         const models = modelsRes.data || [];
-        
+
         // Fetch spaces (apps)
         let spaces = [];
         try {
@@ -237,7 +248,7 @@ const syncHuggingFace = async (user) => {
         } catch (e) {
             console.warn('Could not fetch spaces:', e.message);
         }
-        
+
         // Store stats
         user.integrations.huggingface.stats = {
             username: username,
@@ -249,7 +260,7 @@ const syncHuggingFace = async (user) => {
             last_synced: new Date()
         };
         user.integrations.huggingface.lastSync = new Date();
-        
+
         await user.save();
         console.log(`[Sync] Hugging Face Sync Complete for ${username}`);
         return { success: true, stats: user.integrations.huggingface.stats };

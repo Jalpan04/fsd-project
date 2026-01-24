@@ -7,10 +7,14 @@ import { useRouter } from 'next/navigation';
 import ActivityHeatmap from '@/components/profile/ActivityHeatmap';
 import TechStackDisplay from '@/components/profile/TechStackDisplay';
 import PinnedShowcase from '@/components/profile/PinnedShowcase';
+import UserListModal from '@/components/profile/UserListModal';
+import LeetCodeStatsCard from '@/components/profile/LeetCodeStatsCard';
 
 export default function ProfilePage() {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const [showFollowers, setShowFollowers] = React.useState(false);
+    const [showFollowing, setShowFollowing] = React.useState(false);
 
     if (loading) {
         return (
@@ -26,20 +30,20 @@ export default function ProfilePage() {
         <div className="h-full overflow-y-auto bg-[hsl(var(--ide-bg))] relative">
             {/* Background Decor */}
             <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-cyan-900/20 via-[hsl(var(--ide-bg))] to-[hsl(var(--ide-bg))] pointer-events-none" />
-            
+
             <div className="max-w-5xl mx-auto p-8 relative z-10 flex flex-col items-center">
-                
+
                 {/* Hero Profile Card */}
                 <div className="w-full max-w-5xl bg-[hsl(var(--ide-sidebar))]/50 border border-[hsl(var(--ide-border))] rounded-lg p-6 mb-8 flex flex-col md:flex-row items-center md:items-start gap-8">
-                    
+
                     {/* Avatar - Squarish Round */}
                     <div className="relative shrink-0">
                         <div className="w-32 h-32 rounded-xl p-1 bg-gradient-to-br from-[hsl(var(--primary))] to-[hsl(var(--secondary))]">
                             <div className="w-full h-full rounded-lg overflow-hidden bg-[hsl(var(--ide-bg))] border-2 border-[hsl(var(--ide-bg))]">
-                                <img 
-                                    src={user.avatarUrl || `https://ui-avatars.com/api/?name=${user.username}&background=random`} 
-                                    alt="Avatar" 
-                                    className="w-full h-full object-cover" 
+                                <img
+                                    src={user.avatarUrl || `https://ui-avatars.com/api/?name=${user.username}&background=random`}
+                                    alt="Avatar"
+                                    className="w-full h-full object-cover"
                                 />
                             </div>
                         </div>
@@ -67,7 +71,7 @@ export default function ProfilePage() {
 
                         {/* Socials - Horizontal Left Aligned */}
                         <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                             {user.socials?.github && (
+                            {user.socials?.github && (
                                 <a href={user.socials.github} target="_blank" className="p-2 bg-gray-800/50 hover:bg-gray-800 text-gray-300 hover:text-white rounded-md border border-gray-700 transition-colors">
                                     <Github size={18} />
                                 </a>
@@ -77,8 +81,8 @@ export default function ProfilePage() {
                                     <Linkedin size={18} />
                                 </a>
                             )}
-                             <a href={`mailto:${user.email}`} className="p-2 bg-emerald-900/20 hover:bg-emerald-900/30 text-emerald-400 rounded-md border border-emerald-900/30 transition-colors">
-                                    <Mail size={18} />
+                            <a href={`mailto:${user.email}`} className="p-2 bg-emerald-900/20 hover:bg-emerald-900/30 text-emerald-400 rounded-md border border-emerald-900/30 transition-colors">
+                                <Mail size={18} />
                             </a>
                         </div>
                     </div>
@@ -86,15 +90,15 @@ export default function ProfilePage() {
 
                 {/* Dynamic Content Grid */}
                 <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-                    
+
                     {/* Left Column: Stack & Heatmap */}
                     <div className="lg:col-span-3 space-y-8">
                         {/* 1. Activity Heatmap (Full Width) */}
                         <ActivityHeatmap username={user.username} />
-                        
+
                         {/* 2. Pinned Showcase */}
-                        <PinnedShowcase 
-                            pinnedItems={user.developerProfile?.pinnedItems || []} 
+                        <PinnedShowcase
+                            pinnedItems={user.developerProfile?.pinnedItems || []}
                             isOwnProfile={true}
                             onUpdate={() => window.location.reload()}
                         />
@@ -104,8 +108,8 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Stats & Skills Grid (Moved Down) */}
-                 <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                    
+                <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+
                     {/* Stats */}
                     <div className="bg-[hsl(var(--ide-sidebar))]/50 backdrop-blur-md border border-[hsl(var(--ide-border))] rounded-lg p-6 hover:border-gray-600 transition-colors">
                         <h3 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
@@ -113,19 +117,25 @@ export default function ProfilePage() {
                         </h3>
                         <div className="grid grid-cols-2 gap-4">
                             {/* Followers */}
-                            <div className="p-4 rounded-md bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 hover:border-cyan-500/40 transition-colors group">
+                            <div
+                                onClick={() => setShowFollowers(true)}
+                                className="p-4 rounded-md bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 hover:border-cyan-500/40 transition-colors group cursor-pointer"
+                            >
                                 <div className="flex items-start justify-between mb-2">
-                                     <div className="text-3xl font-bold text-white group-hover:text-cyan-400 transition-colors">{user.followers?.length || 0}</div>
-                                     <Users size={18} className="text-cyan-500 opacity-60" />
+                                    <div className="text-3xl font-bold text-white group-hover:text-cyan-400 transition-colors">{user.followers?.length || 0}</div>
+                                    <Users size={18} className="text-cyan-500 opacity-60" />
                                 </div>
                                 <div className="text-xs text-cyan-200/60 font-medium uppercase tracking-wide">Followers</div>
                             </div>
 
                             {/* Following */}
-                            <div className="p-4 rounded-md bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 hover:border-cyan-500/40 transition-colors group">
+                            <div
+                                onClick={() => setShowFollowing(true)}
+                                className="p-4 rounded-md bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/20 hover:border-cyan-500/40 transition-colors group cursor-pointer"
+                            >
                                 <div className="flex items-start justify-between mb-2">
-                                     <div className="text-3xl font-bold text-white group-hover:text-cyan-400 transition-colors">{user.following?.length || 0}</div>
-                                     <UserCheck size={18} className="text-cyan-500 opacity-60" />
+                                    <div className="text-3xl font-bold text-white group-hover:text-cyan-400 transition-colors">{user.following?.length || 0}</div>
+                                    <UserCheck size={18} className="text-cyan-500 opacity-60" />
                                 </div>
                                 <div className="text-xs text-cyan-200/60 font-medium uppercase tracking-wide">Following</div>
                             </div>
@@ -133,17 +143,17 @@ export default function ProfilePage() {
                             {/* Projects */}
                             <div className="p-4 rounded-md bg-gradient-to-br from-emerald-500/10 to-transparent border border-emerald-500/20 hover:border-emerald-500/40 transition-colors group">
                                 <div className="flex items-start justify-between mb-2">
-                                     <div className="text-3xl font-bold text-white group-hover:text-emerald-400 transition-colors">{user.projects?.length || 0}</div>
-                                     <Code size={18} className="text-emerald-500 opacity-60" />
+                                    <div className="text-3xl font-bold text-white group-hover:text-emerald-400 transition-colors">{user.projects?.length || 0}</div>
+                                    <Code size={18} className="text-emerald-500 opacity-60" />
                                 </div>
                                 <div className="text-xs text-emerald-200/60 font-medium uppercase tracking-wide">Projects</div>
                             </div>
 
-                             {/* Certificates */}
-                             <div className="p-4 rounded-md bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 hover:border-amber-500/40 transition-colors group">
+                            {/* Certificates */}
+                            <div className="p-4 rounded-md bg-gradient-to-br from-amber-500/10 to-transparent border border-amber-500/20 hover:border-amber-500/40 transition-colors group">
                                 <div className="flex items-start justify-between mb-2">
-                                     <div className="text-3xl font-bold text-white group-hover:text-amber-400 transition-colors">{user.certificates?.length || 0}</div>
-                                     <Award size={18} className="text-amber-500 opacity-60" />
+                                    <div className="text-3xl font-bold text-white group-hover:text-amber-400 transition-colors">{user.certificates?.length || 0}</div>
+                                    <Award size={18} className="text-amber-500 opacity-60" />
                                 </div>
                                 <div className="text-xs text-amber-200/60 font-medium uppercase tracking-wide">Certificates</div>
                             </div>
@@ -151,14 +161,19 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Tech Stack (Replaces Metadata Skills) */}
-                    <div className="lg:col-span-2">
-                         <TechStackDisplay skills={user.skills} />
+                    <div className="lg:col-span-2 space-y-6">
+                        <TechStackDisplay skills={user.skills} />
+
+                        {/* External Integrations Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Can add Kaggle/GitHub stats cards here later */}
+                        </div>
                     </div>
 
                     <div className="lg:col-span-3">
                         {/* Quick Actions moved to bottom full width if needed, or keep in sidebar */}
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                             <button 
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button
                                 onClick={() => router.push('/projects')}
                                 className="flex items-center justify-between p-4 rounded-md bg-gradient-to-r from-cyan-900/10 to-transparent border border-cyan-900/20 hover:border-cyan-500/30 group transition-all"
                             >
@@ -166,9 +181,9 @@ export default function ProfilePage() {
                                     <Briefcase size={18} /> View Projects
                                 </span>
                                 <ExternalLink size={16} className="text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                             </button>
+                            </button>
 
-                             <button 
+                            <button
                                 onClick={() => router.push('/certificates')}
                                 className="flex items-center justify-between p-4 rounded-md bg-gradient-to-r from-yellow-900/10 to-transparent border border-yellow-900/20 hover:border-yellow-500/30 group transition-all"
                             >
@@ -176,13 +191,13 @@ export default function ProfilePage() {
                                     <Award size={18} /> View Certificates
                                 </span>
                                 <ExternalLink size={16} className="text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                             </button>
-                         </div>
+                            </button>
+                        </div>
                     </div>
 
                 </div>
-                
-                 {/* Footer Info */}
+
+                {/* Footer Info */}
                 <div className="mt-12 text-center text-gray-600 text-sm">
                     <div className="flex items-center justify-center gap-2 mb-2">
                         <Calendar size={14} /> <span>Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</span>
@@ -190,6 +205,20 @@ export default function ProfilePage() {
                 </div>
 
             </div>
+
+            {/* Modals */}
+            <UserListModal
+                isOpen={showFollowers}
+                onClose={() => setShowFollowers(false)}
+                title="Followers"
+                users={user.followers || []}
+            />
+            <UserListModal
+                isOpen={showFollowing}
+                onClose={() => setShowFollowing(false)}
+                title="Following"
+                users={user.following || []}
+            />
         </div>
     );
 }
