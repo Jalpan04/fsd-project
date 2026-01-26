@@ -7,100 +7,57 @@ const axios = require('axios');
 // @desc    Sync user stats
 // @route   POST /api/users/sync-stats
 // @access  Private
+// Import consolidated services
+const { syncGitHub, syncLeetCode, syncKaggle, syncHuggingFace } = require('../services/aggregatorService');
+
+// @desc    Sync user stats (Consolidated)
+// @route   POST /api/users/sync-stats
+// @access  Private
 const syncUserStats = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).select('+accessToken');
+        const user = await User.findById(req.user._id);
 
         const updates = {};
-        let statsUpdated = false;
+        const syncPromises = [];
 
-        // 1. Sync LeetCode
-        // 1. Sync LeetCode
-        const lcUsername = req.body.leetcodeUsername || user.integrations?.leetcode?.username || user.stats?.leetcode?.username;
-
-        if (lcUsername) {
-            try {
-                const lcStats = await fetchLeetCodeStats(lcUsername);
-
-                // Update integration stats (Primary)
-                updates['integrations.leetcode.stats'] = lcStats;
-                updates['integrations.leetcode.lastSync'] = new Date();
-                updates['integrations.leetcode.username'] = lcUsername;
-
-                // Legacy backward compatibility
-                updates['stats.leetcode'] = lcStats;
-
-                statsUpdated = true;
-            } catch (error) {
-                console.error('LeetCode sync failed:', error.message);
-            }
+        // 1. Sync GitHub
+        if (user.integrations?.github?.username) {
+            syncPromises.push(syncGitHub(user).catch(e => console.error('GitHub Auto-Sync Failed:', e.message)));
         }
 
-        // 2. Sync GitHub
-        // 2a. Public Basic
-        if ((user.authProvider === 'github' || user.githubId || user.username)) {
-            try {
-                if (!req.body.githubAccessToken && !user.accessToken) {
-                    const targetUser = user.githubId || user.username;
-                    const ghRes = await axios.get(`https://api.github.com/users/${targetUser}`);
-                    const { followers, following, public_repos } = ghRes.data;
-
-                    updates['stats.github'] = {
-                        ...(user.stats?.github || {}),
-                        followers,
-                        following,
-                        public_repos,
-                        last_synced: new Date()
-                    };
-                    statsUpdated = true;
-                }
-            } catch (e) { }
+        // 2. Sync LeetCode
+        if (user.integrations?.leetcode?.username) {
+            syncPromises.push(syncLeetCode(user).catch(e => console.error('LeetCode Auto-Sync Failed:', e.message)));
         }
 
-        // 2b. Deep Sync (GitHub)
-        if (req.body.githubAccessToken || user.accessToken) {
-            try {
-                const token = req.body.githubAccessToken || user.accessToken;
-                console.log('Attempting GitHub Deep Sync...');
-                const ghStats = await fetchGitHubStats(token);
-
-                updates['stats.github'] = {
-                    ...ghStats,
-                    last_synced: new Date()
-                };
-
-                if (req.body.githubAccessToken) {
-                    updates['accessToken'] = req.body.githubAccessToken;
-                }
-                statsUpdated = true;
-            } catch (e) {
-                console.error('GitHub Deep Sync Failed:', e.message);
-            }
+        // 3. Sync Kaggle
+        if (user.integrations?.kaggle?.username) {
+            syncPromises.push(syncKaggle(user).catch(e => console.error('Kaggle Auto-Sync Failed:', e.message)));
         }
 
-        // 3. Sync HuggingFace
-        if (req.body.huggingfaceUsername || user.stats?.huggingface?.username) {
-            try {
-                const hfUsername = req.body.huggingfaceUsername || user.stats.huggingface.username;
-                const hfStats = await fetchHuggingFaceStats(hfUsername);
-
-                updates['stats.huggingface'] = hfStats;
-                statsUpdated = true;
-            } catch (error) {
-                console.error('HuggingFace sync failed:', error.message);
-            }
+        // 4. Sync HuggingFace
+        if (user.integrations?.huggingface?.username) {
+            syncPromises.push(syncHuggingFace(user).catch(e => console.error('HuggingFace Auto-Sync Failed:', e.message)));
         }
 
-        if (Object.keys(updates).length > 0) {
-            const updatedUser = await User.findByIdAndUpdate(
-                req.user._id,
-                { $set: updates },
-                { new: true }
-            );
-            return res.json(updatedUser);
-        } else {
-            return res.json(user); // No updates made
-        }
+        await Promise.all(syncPromises);
+
+        // Fetch updated user to return
+        const updatedUser = await User.findById(req.user._id);
+
+        // Refresh legacy stats objects if needed (Optional: UI often reads from user.integrations now)
+        // But for safety, map them back if your UI expects user.stats.github
+        // (Assuming the aggregatorService updates user.integrations.[platform].stats)
+
+        if (!updatedUser.stats) updatedUser.stats = {};
+        if (updatedUser.integrations.github?.stats) updatedUser.stats.github = updatedUser.integrations.github.stats;
+        if (updatedUser.integrations.leetcode?.stats) updatedUser.stats.leetcode = updatedUser.integrations.leetcode.stats;
+        if (updatedUser.integrations.kaggle?.stats) updatedUser.stats.kaggle = updatedUser.integrations.kaggle.stats;
+        if (updatedUser.integrations.huggingface?.stats) updatedUser.stats.huggingface = updatedUser.integrations.huggingface.stats;
+
+        await updatedUser.save();
+
+        res.json(updatedUser);
 
     } catch (error) {
         console.error('Sync Stats Error:', error);

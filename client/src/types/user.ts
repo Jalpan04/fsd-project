@@ -91,7 +91,15 @@ export interface User {
             username?: string;
             accessToken?: string;
             lastSync?: string;
-            stats?: any;
+            stats?: {
+                username: string;
+                profile_url: string;
+                models_count: number;
+                spaces_count: number;
+                total_likes: number;
+                total_downloads: number;
+                last_synced: string;
+            };
         };
     };
 

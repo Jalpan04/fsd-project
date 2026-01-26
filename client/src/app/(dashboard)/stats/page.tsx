@@ -55,7 +55,7 @@ export default function StatsPage() {
     };
 
     return (
-        <div className="p-8 max-w-6xl mx-auto h-full overflow-y-auto">
+        <div className="p-8 max-w-6xl mx-auto">
             <header className="flex justify-between items-center mb-8 pb-6 border-b border-border">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
@@ -78,22 +78,18 @@ export default function StatsPage() {
                 <StatCard title="GitHub" icon={Github} color="gray" connected={!!integrations.github?.username}>
                     {stats.github ? (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-2xl font-bold text-foreground">{stats.github.commits || 0}</div>
-                                    <div className="text-xs text-muted-foreground uppercase">Commits</div>
+                            <div className="flex flex-col gap-3">
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
+                                    <div className="text-xs text-muted-foreground uppercase">Public Repos</div>
+                                    <div className="text-2xl font-bold text-foreground">{stats.github.public_repos || 0}</div>
                                 </div>
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-2xl font-bold text-foreground">{stats.github.stars || 0}</div>
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
                                     <div className="text-xs text-muted-foreground uppercase">Stars</div>
+                                    <div className="text-2xl font-bold text-foreground">{stats.github.total_stars || 0}</div>
                                 </div>
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-2xl font-bold text-foreground">{stats.github.prs || 0}</div>
-                                    <div className="text-xs text-muted-foreground uppercase">PRs</div>
-                                </div>
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-2xl font-bold text-foreground">{stats.github.followers || 0}</div>
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
                                     <div className="text-xs text-muted-foreground uppercase">Followers</div>
+                                    <div className="text-2xl font-bold text-foreground">{stats.github.followers || 0}</div>
                                 </div>
                             </div>
                         </div>
@@ -107,7 +103,7 @@ export default function StatsPage() {
                 {/* LeetCode Stats */}
                 <StatCard title="LeetCode" icon={Code} color="yellow" connected={!!integrations.leetcode?.username}>
                     {stats.leetcode ? (
-                        <LeetCodeStatsCard stats={stats.leetcode} username={integrations.leetcode?.username} />
+                        <LeetCodeStatsCard stats={stats.leetcode} username={integrations.leetcode?.username || ''} />
                     ) : (integrations.leetcode?.username ? (
                         <div className="text-sm text-yellow-500 flex items-center gap-2">
                             <RefreshCw size={14} /> Data sync required.
@@ -119,22 +115,18 @@ export default function StatsPage() {
                 <StatCard title="Kaggle" icon={Database} color="cyan" connected={!!integrations.kaggle?.username}>
                     {stats.kaggle ? (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-xl font-bold text-foreground">{stats.kaggle.competitions || 0}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase">Competitions</div>
-                                </div>
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-xl font-bold text-foreground">{stats.kaggle.kernels || 0}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase">Kernels</div>
-                                </div>
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-xl font-bold text-foreground">{stats.kaggle.discussions || 0}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase">Discussions</div>
-                                </div>
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
+                            <div className="flex flex-col gap-3">
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
+                                    <div className="text-xs text-muted-foreground uppercase">Datasets</div>
                                     <div className="text-xl font-bold text-foreground">{stats.kaggle.datasets || 0}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase">Datasets</div>
+                                </div>
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
+                                    <div className="text-xs text-muted-foreground uppercase">Competitions</div>
+                                    <div className="text-xl font-bold text-foreground">{stats.kaggle.competitions || 0}</div>
+                                </div>
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
+                                    <div className="text-xs text-muted-foreground uppercase">Notebooks</div>
+                                    <div className="text-xl font-bold text-foreground">{stats.kaggle.kernels || 0}</div>
                                 </div>
                             </div>
                         </div>
@@ -149,18 +141,18 @@ export default function StatsPage() {
                 <StatCard title="Hugging Face" icon={Smile} color="amber" connected={!!integrations.huggingface?.username}>
                     {stats.huggingface ? (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-xl font-bold text-foreground">{stats.huggingface.models || 0}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase">Models</div>
+                            <div className="flex flex-col gap-3">
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
+                                    <div className="text-xs text-muted-foreground uppercase">Models Published</div>
+                                    <div className="text-xl font-bold text-foreground">{stats.huggingface.models_count || 0}</div>
                                 </div>
-                                <div className="p-3 bg-secondary/50 rounded border border-border">
-                                    <div className="text-xl font-bold text-foreground">{stats.huggingface.spaces || 0}</div>
-                                    <div className="text-[10px] text-muted-foreground uppercase">Spaces</div>
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
+                                    <div className="text-xs text-muted-foreground uppercase">Total Model Downloads</div>
+                                    <div className="text-xl font-bold text-foreground">{stats.huggingface.total_downloads || 0}</div>
                                 </div>
-                                <div className="col-span-2 p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
-                                    <div className="text-[10px] text-muted-foreground uppercase">Total Likes</div>
-                                    <div className="text-xl font-bold text-foreground">{stats.huggingface.likes || 0}</div>
+                                <div className="p-3 bg-secondary/50 rounded border border-border flex justify-between items-center">
+                                    <div className="text-xs text-muted-foreground uppercase">Spaces Created</div>
+                                    <div className="text-xl font-bold text-foreground">{stats.huggingface.spaces_count || 0}</div>
                                 </div>
                             </div>
                         </div>
