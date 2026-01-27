@@ -40,6 +40,19 @@ export default function IntegrationSettings({ user, onUpdate }: IntegrationSetti
         }));
     };
 
+    // 🔄 SYNC DATA
+    const handleSync = async (platform: string) => {
+        setSyncing(platform);
+        try {
+            await api.post('/integrations/sync', { platform });
+            onUpdate?.(); // Refresh user data to show new stats
+        } catch (error: any) {
+            console.error('Sync failed:', error.response?.data || error);
+        } finally {
+            setSyncing(null);
+        }
+    };
+
     // 🔗 CONNECT / UPDATE CREDENTIALS
     const handleConnect = async (platform: string) => {
         setLoading(platform);
@@ -49,23 +62,14 @@ export default function IntegrationSettings({ user, onUpdate }: IntegrationSetti
                 ...forms[platform],
             });
 
+            // Auto-sync after connection
+            await handleSync(platform);
+
             onUpdate?.();
         } catch (error: any) {
             console.error('Connect failed:', error.response?.data || error);
         } finally {
             setLoading(null);
-        }
-    };
-
-    // 🔄 SYNC DATA
-    const handleSync = async (platform: string) => {
-        setSyncing(platform);
-        try {
-            await api.post('/integrations/sync', { platform });
-        } catch (error: any) {
-            console.error('Sync failed:', error.response?.data || error);
-        } finally {
-            setSyncing(null);
         }
     };
 
@@ -98,8 +102,8 @@ export default function IntegrationSettings({ user, onUpdate }: IntegrationSetti
                             <div className="flex gap-4 md:w-1/3">
                                 <div
                                     className={`p-3 rounded-xl h-fit border ${connected
-                                            ? 'bg-primary/10 border-primary/30 text-primary'
-                                            : 'bg-secondary border-border text-muted-foreground'
+                                        ? 'bg-primary/10 border-primary/30 text-primary'
+                                        : 'bg-secondary border-border text-muted-foreground'
                                         }`}
                                 >
                                     <Icon size={24} />

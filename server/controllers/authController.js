@@ -42,22 +42,56 @@ const githubAuth = async (req, res) => {
         });
 
         const githubUser = userResponse.data;
-        const { id, login, avatar_url, name, bio, email, blog, location, twitter_username } = githubUser;
+        const { id, login, avatar_url, name, bio, email, blog, location, twitter_username, followers, following, public_repos } = githubUser;
 
         // 3. Find or Create User
         let user = await User.findOne({ githubId: id.toString() });
 
+        const githubStats = {
+            followers,
+            following,
+            public_repos,
+            // Initialize other stats to 0 or keep existing if updating? 
+            // For now, let's provide a base. 
+            // Ideally we should merge if user exists, but simple overwrite for now is safer for "fix"
+            total_stars: 0,
+            languages: {},
+            commits: 0,
+            total_contributions: 0,
+            prs: 0,
+            issues: 0,
+            username: login
+        };
+
         if (user) {
             // Update token
             user.accessToken = access_token;
-            // Update basic info if changed (optional, maybe configurable)
             user.avatarUrl = avatar_url;
+
+            // Ensure Integrations & Stats are present
+            if (!user.integrations) user.integrations = {};
+            if (!user.integrations.github) user.integrations.github = {};
+
+            user.integrations.github.username = login;
+            user.integrations.github.accessToken = access_token;
+
+            // Initial stats population if missing (or update basics)
+            if (!user.integrations.github.stats || !user.integrations.github.stats.username) {
+                user.integrations.github.stats = { ...user.integrations.github.stats, ...githubStats };
+            }
+
+            if (!user.stats) user.stats = {};
+            if (!user.stats.github || !user.stats.github.username) {
+                user.stats.github = { ...user.stats.github, ...githubStats };
+            }
+
+            user.markModified('stats');
             await user.save();
         } else {
             user = await User.create({
                 githubId: id.toString(),
                 username: login,
-                email: email || `${login}@no-email.github.com`, // Handle missing email
+                email: email || `${login}@no-email.github.com`,
                 displayName: name || login,
                 avatarUrl: avatar_url,
                 bio: bio,
@@ -68,7 +102,17 @@ const githubAuth = async (req, res) => {
                     linkedin: '',
                     youtube: ''
                 },
-                accessToken: access_token
+                accessToken: access_token,
+                integrations: {
+                    github: {
+                        username: login,
+                        accessToken: access_token,
+                        stats: githubStats
+                    }
+                },
+                stats: {
+                    github: githubStats
+                }
             });
         }
 
@@ -130,11 +174,7 @@ const registerUser = async (req, res) => {
             { type: 'projects', order: 2, isVisible: true }
         ];
 
-        // Create user (githubId is required by schema, we need to handle this)
-        const fakeGithubId = `email_${Date.now()}`;
-
         const user = await User.create({
-            githubId: fakeGithubId, // temporary hack until schema migration
             username,
             email,
             password: hashedPassword,

@@ -16,9 +16,12 @@ export default function GitHubDetailsModal({ isOpen, onClose, user }: GitHubDeta
     const [listData, setListData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    if (!isOpen || !user?.stats?.github) return null;
+    const hasGithub = user?.stats?.github?.username || user?.integrations?.github?.username;
+    if (!isOpen || !hasGithub) return null;
 
-    const { followers, following, total_stars, username } = user.stats.github;
+    const stats = user.stats?.github || user.integrations?.github?.stats || {};
+    const { followers = 0, following = 0, total_stars = 0 } = stats;
+    const username = user.stats?.github?.username || user.integrations?.github?.username || user.username;
 
     // Reset view when closing
     const handleClose = () => {

@@ -10,14 +10,17 @@ interface LeetCodeDetailsModalProps {
 }
 
 export default function LeetCodeDetailsModal({ isOpen, onClose, user }: LeetCodeDetailsModalProps) {
-    if (!isOpen || !user?.stats?.leetcode) return null;
+    const hasLeetCode = user?.stats?.leetcode?.username || user?.integrations?.leetcode?.username;
+    if (!isOpen || !hasLeetCode) return null;
 
+    const stats = user.stats?.leetcode || user.integrations?.leetcode?.stats || {};
     const {
-        ranking,
-        total_solved,
-        total_questions,
-        username
-    } = user.stats.leetcode;
+        ranking = null,
+        total_solved = 0,
+        total_questions = 0
+    } = stats;
+
+    const username = user.stats?.leetcode?.username || user.integrations?.leetcode?.username;
 
     // Use the stored username or fallback to the main username if it matches (though integration usually stores its own)
     const targetUsername = username || user.username;
