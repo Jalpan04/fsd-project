@@ -243,6 +243,26 @@ const followUser = async (req, res) => {
 
         // Send Request
         await userToFollow.updateOne({ $push: { followRequests: req.user.id } });
+
+        // Create Notification
+        const Notification = require('../models/Notification');
+        const { getIo } = require('../socket/socketHandler');
+
+        const notification = await Notification.create({
+            recipient: userToFollow._id,
+            sender: req.user.id,
+            type: 'follow_request'
+        });
+
+        // Emit Socket Event
+        try {
+            const io = getIo();
+            const populatedNotif = await Notification.findById(notification._id).populate('sender', 'displayName username avatarUrl');
+            io.to(userToFollow._id.toString()).emit('new_notification', populatedNotif);
+        } catch (e) {
+            console.error('Socket Emit Error:', e.message);
+        }
+
         res.json({ message: "Follow request sent", status: 'requested' });
 
     } catch (error) {
@@ -300,6 +320,24 @@ const acceptFollowRequest = async (req, res) => {
 
         // Add to requester's following
         await requester.updateOne({ $push: { following: req.user.id } });
+
+        // Notify Requester
+        const Notification = require('../models/Notification');
+        const { getIo } = require('../socket/socketHandler');
+
+        const notification = await Notification.create({
+            recipient: requester._id,
+            sender: req.user.id,
+            type: 'follow_accept'
+        });
+
+        try {
+            const io = getIo();
+            const populatedNotif = await Notification.findById(notification._id).populate('sender', 'displayName username avatarUrl');
+            io.to(requester._id.toString()).emit('new_notification', populatedNotif);
+        } catch (e) {
+            console.error('Socket Emit Error:', e.message);
+        }
 
         res.json({ message: "Follow request accepted" });
     } catch (error) {

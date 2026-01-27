@@ -85,6 +85,34 @@ const syncPlatform = async (req, res) => {
             return res.status(400).json({ message: 'Sync not implemented for this platform yet' });
         }
 
+        // Re-fetch user to get the updates made by sync services (since they save the user)
+        // Or better, just update the in-memory user object's legacy stats if the service updated the integrations
+        // The services `syncGitHub` etc call `user.save()`. 
+        // We should fetch the updated user to ensure we have the latest data before mapping to legacy stats.
+        const updatedUser = await User.findById(req.user._id);
+
+        // Backward Consistency: Sync integration stats to root stats
+        if (!updatedUser.stats) updatedUser.stats = {};
+
+        if (platform === 'github' && updatedUser.integrations.github?.stats) {
+            updatedUser.stats.github = {
+                ...updatedUser.integrations.github.stats,
+                username: updatedUser.integrations.github.username
+            };
+        } else if (platform === 'leetcode' && updatedUser.integrations.leetcode?.stats) {
+            updatedUser.stats.leetcode = {
+                ...updatedUser.integrations.leetcode.stats,
+                username: updatedUser.integrations.leetcode.username
+            };
+        } else if (platform === 'kaggle' && updatedUser.integrations.kaggle?.stats) {
+            updatedUser.stats.kaggle = updatedUser.integrations.kaggle.stats;
+        } else if (platform === 'huggingface' && updatedUser.integrations.huggingface?.stats) {
+            updatedUser.stats.huggingface = updatedUser.integrations.huggingface.stats;
+        }
+
+        updatedUser.markModified('stats');
+        await updatedUser.save();
+
         res.json({ message: 'Sync complete', result });
     } catch (error) {
         console.error('Sync error message:', error.message);

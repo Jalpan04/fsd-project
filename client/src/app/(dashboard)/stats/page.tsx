@@ -48,10 +48,10 @@ export default function StatsPage() {
     const integrations = user.integrations || {};
     // Map integration stats to a common stats object for easier access
     const stats = {
-        github: integrations.github?.stats,
-        leetcode: integrations.leetcode?.stats,
-        kaggle: integrations.kaggle?.stats,
-        huggingface: integrations.huggingface?.stats,
+        github: user?.stats?.github || integrations.github?.stats,
+        leetcode: user?.stats?.leetcode || integrations.leetcode?.stats,
+        kaggle: user?.stats?.kaggle || integrations.kaggle?.stats,
+        huggingface: user?.stats?.huggingface || integrations.huggingface?.stats,
     };
 
     return (

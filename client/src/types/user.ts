@@ -46,9 +46,17 @@ export interface User {
         };
         kaggle?: {
             username: string;
+            datasets?: number;
+            competitions?: number;
+            kernels?: number;
+            followers?: number;
         };
         huggingface?: {
             username: string;
+            models_count?: number;
+            spaces_count?: number;
+            total_likes?: number;
+            total_downloads?: number;
         };
     };
 

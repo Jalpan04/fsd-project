@@ -52,7 +52,10 @@ const syncGitHub = async (user) => {
         // Calculate Languages
         const languages = {};
         allRepos.forEach(repo => {
-            if (repo.language) languages[repo.language] = (languages[repo.language] || 0) + 1;
+            if (repo.language) {
+                const lang = repo.language.replace(/\./g, '_'); // Sanitize for MongoDB (no dots in keys)
+                languages[lang] = (languages[lang] || 0) + 1;
+            }
         });
 
         // 2. Fetch Activity Events
