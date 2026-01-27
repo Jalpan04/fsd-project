@@ -15,6 +15,10 @@ export interface User {
     projects?: Project[];
     certificates?: Certificate[];
 
+    developerProfile?: {
+        pinnedItems?: PinnedItem[];
+    };
+
     // Social Links
     socials?: {
         github?: string;
@@ -135,4 +139,13 @@ export interface ProfileSection {
     title: string;
     content?: any; // To be refined
     isVisible: boolean;
+}
+
+export interface PinnedItem {
+    type: 'repo' | 'pr' | 'notebook' | 'model' | 'post';
+    platform: 'github' | 'kaggle' | 'huggingface';
+    url: string;
+    title: string;
+    description: string;
+    thumbnail?: string;
 }

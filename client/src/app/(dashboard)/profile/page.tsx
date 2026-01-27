@@ -2,19 +2,34 @@
 
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Mail, Calendar, MapPin, ExternalLink, Github, Linkedin, Code, Award, Briefcase, Users, UserCheck, Plus } from 'lucide-react';
+import { Loader2, Mail, Calendar, ExternalLink, Github, Linkedin, Code, Award, Briefcase, Users, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ActivityHeatmap from '@/components/profile/ActivityHeatmap';
 import TechStackDisplay from '@/components/profile/TechStackDisplay';
 import PinnedShowcase from '@/components/profile/PinnedShowcase';
 import UserListModal from '@/components/profile/UserListModal';
-import LeetCodeStatsCard from '@/components/profile/LeetCodeStatsCard';
+import api from '@/lib/api';
 
 export default function ProfilePage() {
     const { user, loading } = useAuth();
     const router = useRouter();
     const [showFollowers, setShowFollowers] = React.useState(false);
     const [showFollowing, setShowFollowing] = React.useState(false);
+
+    // Auto-sync if stale (> 24h)
+    React.useEffect(() => {
+        if (user?.integrations?.github?.username) {
+            const lastSync = user.integrations.github.lastSync ? new Date(user.integrations.github.lastSync) : null;
+            const oneDay = 24 * 60 * 60 * 1000;
+            // Sync if never synced or older than 24 hours
+            if (!lastSync || (new Date().getTime() - lastSync.getTime() > oneDay)) {
+                console.log('Data stale, auto-syncing...');
+                api.post('/users/sync-stats')
+                    .then(() => console.log('Auto-sync complete'))
+                    .catch(err => console.error('Auto-sync failed', err));
+            }
+        }
+    }, [user]);
 
     if (loading) {
         return (
@@ -103,8 +118,6 @@ export default function ProfilePage() {
                             onUpdate={() => window.location.reload()}
                         />
                     </div>
-
-                    {/* Stats & Skills were here. Let's reorganize. */}
                 </div>
 
                 {/* Stats & Skills Grid (Moved Down) */}
@@ -158,43 +171,88 @@ export default function ProfilePage() {
                                 <div className="text-xs text-amber-200/60 font-medium uppercase tracking-wide">Certificates</div>
                             </div>
                         </div>
+
                     </div>
 
-                    {/* Tech Stack (Replaces Metadata Skills) */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <TechStackDisplay skills={user.skills} />
+                    {/* Projects */}
+                    <div
+                        onClick={() => router.push('/projects')}
+                        className="bg-[hsl(var(--ide-sidebar))]/50 backdrop-blur-md border border-[hsl(var(--ide-border))] rounded-lg p-6 hover:border-cyan-500/30 transition-all cursor-pointer group flex flex-col justify-between h-full"
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="p-3 rounded-lg bg-cyan-500/10 text-cyan-400 group-hover:scale-110 transition-transform">
+                                <Briefcase size={24} />
+                            </div>
+                            <ExternalLink size={18} className="text-gray-500 group-hover:text-cyan-400 transition-colors" />
+                        </div>
 
-                        {/* External Integrations Stats */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Can add Kaggle/GitHub stats cards here later */}
+                        {/* Recent Projects Preview */}
+                        <div className="flex-1 flex flex-col justify-center gap-2 mb-4">
+                            {user.projects && user.projects.length > 0 ? (
+                                user.projects.slice(0, 2).map((project: any, i: number) => (
+                                    <div key={i} className="flex items-center gap-3 p-2 rounded bg-cyan-500/5 border border-cyan-500/10">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50" />
+                                        <span className="text-xs text-gray-300 truncate font-medium">{project.title}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex items-center justify-center h-20 text-xs text-gray-600 italic">
+                                    No projects yet
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-white mb-1 group-hover:text-cyan-400 transition-colors">View Projects</h3>
+                            <p className="text-gray-400 text-sm">Explore my portfolio and case studies.</p>
                         </div>
                     </div>
 
-                    <div className="lg:col-span-3">
-                        {/* Quick Actions moved to bottom full width if needed, or keep in sidebar */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button
-                                onClick={() => router.push('/projects')}
-                                className="flex items-center justify-between p-4 rounded-md bg-gradient-to-r from-cyan-900/10 to-transparent border border-cyan-900/20 hover:border-cyan-500/30 group transition-all"
-                            >
-                                <span className="flex items-center gap-3 text-cyan-200">
-                                    <Briefcase size={18} /> View Projects
-                                </span>
-                                <ExternalLink size={16} className="text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
+                    {/* Certificates */}
+                    <div
+                        onClick={() => router.push('/certificates')}
+                        className="bg-[hsl(var(--ide-sidebar))]/50 backdrop-blur-md border border-[hsl(var(--ide-border))] rounded-lg p-6 hover:border-yellow-500/30 transition-all cursor-pointer group flex flex-col justify-between h-full"
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="p-3 rounded-lg bg-yellow-500/10 text-yellow-400 group-hover:scale-110 transition-transform">
+                                <Award size={24} />
+                            </div>
+                            <ExternalLink size={18} className="text-gray-500 group-hover:text-yellow-400 transition-colors" />
+                        </div>
 
-                            <button
-                                onClick={() => router.push('/certificates')}
-                                className="flex items-center justify-between p-4 rounded-md bg-gradient-to-r from-yellow-900/10 to-transparent border border-yellow-900/20 hover:border-yellow-500/30 group transition-all"
-                            >
-                                <span className="flex items-center gap-3 text-yellow-200">
-                                    <Award size={18} /> View Certificates
-                                </span>
-                                <ExternalLink size={16} className="text-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
+                        {/* Recent Certificates Preview */}
+                        <div className="flex-1 flex flex-col justify-center gap-2 mb-4">
+                            {user.certificates && user.certificates.length > 0 ? (
+                                user.certificates.slice(0, 2).map((cert: any, i: number) => (
+                                    <div key={i} className="flex items-center gap-3 p-2 rounded bg-yellow-500/5 border border-yellow-500/10">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/50" />
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-xs text-gray-300 truncate font-medium">{cert.name}</span>
+                                            <span className="text-[10px] text-gray-500 truncate">{cert.issuer}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="flex items-center justify-center h-20 text-xs text-gray-600 italic">
+                                    No certificates yet
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-white mb-1 group-hover:text-yellow-400 transition-colors">View Certificates</h3>
+                            <p className="text-gray-400 text-sm">Check out my achievements and badges.</p>
                         </div>
                     </div>
 
+                </div>
+
+                {/* Tech Stack (Moved below main stats grid) */}
+                <div className="w-full max-w-5xl mt-8 space-y-6">
+                    <TechStackDisplay initialSkills={user.skills} />
+
+                    {/* External Integrations Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Can add Kaggle/GitHub stats cards here later */}
+                    </div>
                 </div>
 
                 {/* Footer Info */}

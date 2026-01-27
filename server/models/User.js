@@ -24,7 +24,7 @@ const UserSchema = new mongoose.Schema({
     githubId: {
         type: String,
         unique: true,
-        sparse: true 
+        sparse: true
     },
     username: {
         type: String,
@@ -52,11 +52,11 @@ const UserSchema = new mongoose.Schema({
     },
     skills: [String],
     profileSections: [ProfileSectionSchema],
-    accessToken: String, 
+    accessToken: String,
     lastSynced: Date,
     password: {
         type: String,
-        select: false 
+        select: false
     },
     authProvider: {
         type: String,
@@ -69,7 +69,8 @@ const UserSchema = new mongoose.Schema({
             username: String,
             accessToken: String, // Encrypted ideally
             lastSync: Date,
-            stats: { type: mongoose.Schema.Types.Mixed, default: {} }
+            stats: { type: mongoose.Schema.Types.Mixed, default: {} },
+            contributionCalendar: { type: mongoose.Schema.Types.Mixed, default: null }
         },
         leetcode: {
             username: String,
@@ -97,7 +98,7 @@ const UserSchema = new mongoose.Schema({
             userId: String,
             lastSync: Date,
             stats: { type: mongoose.Schema.Types.Mixed, default: {} }
-        }, 
+        },
         gitlab: {
             username: String,
             accessToken: String,
@@ -148,7 +149,7 @@ const UserSchema = new mongoose.Schema({
     followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 }, { timestamps: true });
 
-UserSchema.pre('save', async function() {
+UserSchema.pre('save', async function () {
     if (this.isNew && this.profileSections.length === 0) {
         this.profileSections = [
             { type: 'about', order: 0, isVisible: true },

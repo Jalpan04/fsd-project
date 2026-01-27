@@ -8,7 +8,7 @@ import { ArrowLeft, Loader2, Award, Calendar, Link as LinkIcon, Building2 } from
 export default function AddCertificatePage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    
+
     // State
     const [name, setName] = useState('');
     const [issuer, setIssuer] = useState('');
@@ -22,7 +22,7 @@ export default function AddCertificatePage() {
         try {
             const userRes = await api.get('/auth/me');
             const currentCerts = userRes.data.certificates || [];
-            
+
             const newCert = { name, issuer, date, link };
             const updatedCerts = [...currentCerts, newCert];
 
@@ -50,14 +50,14 @@ export default function AddCertificatePage() {
                     </h1>
                     <p className="text-gray-400 mt-1">Add your professional certifications and achievements.</p>
                 </header>
-                
+
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">Certificate Name *</label>
                         <div className="relative">
                             <Award className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 required
                                 className="w-full bg-black/30 border border-gray-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors"
                                 placeholder="e.g. AWS Certified Solutions Architect"
@@ -71,8 +71,8 @@ export default function AddCertificatePage() {
                         <label className="block text-sm font-medium text-gray-300 mb-2">Issuing Organization *</label>
                         <div className="relative">
                             <Building2 className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 required
                                 className="w-full bg-black/30 border border-gray-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors"
                                 placeholder="e.g. Amazon Web Services"
@@ -87,8 +87,8 @@ export default function AddCertificatePage() {
                             <label className="block text-sm font-medium text-gray-300 mb-2">Issue Date</label>
                             <div className="relative">
                                 <Calendar className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                                <input 
-                                    type="date" 
+                                <input
+                                    type="date"
                                     className="w-full bg-black/30 border border-gray-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors "
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
@@ -100,8 +100,8 @@ export default function AddCertificatePage() {
                             <label className="block text-sm font-medium text-gray-300 mb-2">Credential URL</label>
                             <div className="relative">
                                 <LinkIcon className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                                <input 
-                                    type="url" 
+                                <input
+                                    type="text"
                                     className="w-full bg-black/30 border border-gray-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors"
                                     placeholder="https://..."
                                     value={link}
@@ -112,14 +112,14 @@ export default function AddCertificatePage() {
                     </div>
 
                     <div className="pt-6 flex justify-end gap-3 border-t border-[hsl(var(--ide-border))]">
-                         <button 
-                            type="button" 
+                        <button
+                            type="button"
                             onClick={() => router.back()}
                             className="px-6 py-2.5 text-gray-400 hover:text-white transition-colors"
                         >
                             Cancel
                         </button>
-                        <button 
+                        <button
                             type="submit"
                             disabled={isLoading}
                             className="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 transition-all shadow-lg shadow-cyan-900/20"

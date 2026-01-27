@@ -61,6 +61,9 @@ const syncGitHub = async (user) => {
         // 2. Fetch Activity Events
         const eventsRes = await axios.get(`https://api.github.com/users/${username}/events/public?per_page=100`, { headers });
 
+        // Clear existing events for this user/platform to prevent duplicates or stale data merging
+        await UnifiedEvent.deleteMany({ user: user._id, platform: 'github' });
+
         let newEventsCount = 0;
         let commitsCount = 0;
         let prsCount = 0;
@@ -79,19 +82,34 @@ const syncGitHub = async (user) => {
 
         // 3. Fetch Total Contributions (GraphQL)
         let totalContributions = 0;
+        let gqlRes = null;
         if (isValidToken) {
             try {
+                const now = new Date();
+                const fromDate = new Date(now);
+                fromDate.setFullYear(now.getFullYear() - 1);
+
+                const queryFrom = fromDate.toISOString();
+                const queryTo = now.toISOString();
+
                 const gqlQuery = `
                 query {
                     user(login: "${username}") {
-                        contributionsCollection {
+                        contributionsCollection(from: "${queryFrom}", to: "${queryTo}") {
                             contributionCalendar {
                                 totalContributions
+                                weeks {
+                                    contributionDays {
+                                        contributionCount
+                                        date
+                                        color
+                                    }
+                                }
                             }
                         }
                     }
                 }`;
-                const gqlRes = await axios.post('https://api.github.com/graphql', { query: gqlQuery }, { headers });
+                gqlRes = await axios.post('https://api.github.com/graphql', { query: gqlQuery }, { headers });
                 totalContributions = gqlRes.data?.data?.user?.contributionsCollection?.contributionCalendar?.totalContributions || 0;
                 console.log(`[Sync] GitHub Total Contributions: ${totalContributions}`);
             } catch (gqlError) {
@@ -111,13 +129,21 @@ const syncGitHub = async (user) => {
             prs: prsCount,
             issues: issuesCount
         };
+
+        // Save Calendar Data if available
+        if (gqlRes?.data?.data?.user?.contributionsCollection?.contributionCalendar) {
+            user.integrations.github.contributionCalendar = gqlRes.data.data.user.contributionsCollection.contributionCalendar;
+            user.markModified('integrations');
+        }
+
         user.integrations.github.lastSync = new Date();
 
         // Save Events Logic (Simplified for brevity, same as before)
         for (const event of eventsRes.data) {
             try {
-                const exists = await UnifiedEvent.exists({ externalId: String(event.id) });
-                if (exists) continue;
+                // Since we cleared all events above, we can skip the existence check for faster sync
+                // except for edge case of duplicate IDs in same response (rare)
+
                 const score = calculateScore(event.type);
                 let description = null;
                 if (event.type === 'PushEvent' && event.payload.commits && event.payload.commits.length > 0) {

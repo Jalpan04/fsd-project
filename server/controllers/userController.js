@@ -78,6 +78,26 @@ const updateUserProfile = async (req, res) => {
             user.displayName = req.body.displayName || user.displayName;
             if (req.body.skills) user.skills = req.body.skills;
 
+            // GitHub Username
+            if (req.body.githubUsername) {
+                if (!user.integrations) user.integrations = {};
+                if (!user.integrations.github) user.integrations.github = {};
+
+                // If username is changing, reset stats
+                if (user.integrations.github.username !== req.body.githubUsername) {
+                    user.integrations.github.username = req.body.githubUsername;
+                    user.integrations.github.stats = {};
+                    user.integrations.github.contributionCalendar = null;
+                    user.integrations.github.lastSync = null;
+                    user.markModified('integrations');
+
+                    // Clear UnifiedEvents for this user to prevent pollution from old account
+                    const UnifiedEvent = require('../models/UnifiedEvent');
+                    await UnifiedEvent.deleteMany({ user: user._id, platform: 'github' });
+                    console.log(`[Profile Update] Cleared old GitHub events for user ${user._id}`);
+                }
+            }
+
             // LeetCode Username
             if (req.body.leetcodeUsername) {
                 if (!user.stats) user.stats = {};
@@ -406,6 +426,22 @@ const getUserHeatmap = async (req, res) => {
         const user = await User.findOne({ username: req.params.username });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        // Check for new contributionCalendar data first (GraphQL)
+        if (user.integrations?.github?.contributionCalendar?.weeks) {
+            const heatmapData = [];
+            user.integrations.github.contributionCalendar.weeks.forEach(week => {
+                week.contributionDays.forEach(day => {
+                    heatmapData.push({
+                        date: day.date,
+                        count: day.contributionCount,
+                        score: day.contributionCount // Simple score mapping
+                    });
+                });
+            });
+            return res.json(heatmapData);
+        }
+
+        // Fallback: Legacy UnifiedEvent Aggregation
         const UnifiedEvent = require('../models/UnifiedEvent');
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);

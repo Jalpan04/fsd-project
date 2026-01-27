@@ -30,9 +30,9 @@ export default function CertificatesPage() {
                     </h1>
                     <p className="text-gray-400 mt-2">Credential wallet and achievements.</p>
                 </div>
-                <button 
-                    onClick={() => router.push('/certificate/create')} 
-                    className="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 shadow-lg shadow-cyan-900/20 transition-all hover:scale-105"
+                <button
+                    onClick={() => router.push('/certificate/create')}
+                    className="bg-yellow-600 hover:bg-yellow-500 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 shadow-lg shadow-yellow-900/20 transition-all hover:scale-105"
                 >
                     <Plus size={20} /> Add Certificate
                 </button>
@@ -52,9 +52,9 @@ export default function CertificatesPage() {
                                     <span className="flex items-center justify-center sm:justify-start gap-1.5"><Calendar size={14} /> {cert.date ? new Date(cert.date).toLocaleDateString() : 'No Date'}</span>
                                 </div>
                                 {cert.link && (
-                                    <a 
-                                        href={cert.link} 
-                                        target="_blank" 
+                                    <a
+                                        href={cert.link.startsWith('http') ? cert.link : `https://${cert.link}`}
+                                        target="_blank"
                                         rel="noreferrer"
                                         className="inline-flex items-center gap-2 text-xs font-medium bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-md border border-gray-700 transition-colors"
                                     >
@@ -71,7 +71,7 @@ export default function CertificatesPage() {
                         </div>
                         <h3 className="text-xl font-bold text-white mb-2">No certificates found</h3>
                         <p className="text-gray-400 max-w-md mx-auto mb-6">Showcase your professional achievements.</p>
-                        <button 
+                        <button
                             onClick={() => router.push('/certificate/create')}
                             className="bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-lg transition-colors font-medium border border-white/10"
                         >
