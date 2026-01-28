@@ -51,6 +51,7 @@ export function Sidebar() {
     const pathname = usePathname();
     const { socket } = useSocket();
     const [unreadCount, setUnreadCount] = useState(0);
+    const [messageUnreadCount, setMessageUnreadCount] = useState(0);
 
     // Fetch initial count
     useEffect(() => {
@@ -59,6 +60,9 @@ export function Sidebar() {
                 const res = await api.get('/notifications');
                 const unread = res.data.filter((n: any) => !n.read).length;
                 setUnreadCount(unread);
+
+                const chatRes = await api.get('/chat/unread-count');
+                setMessageUnreadCount(chatRes.data.count);
             } catch (e) {
                 console.error("Failed to fetch notification count", e);
             }
@@ -68,15 +72,41 @@ export function Sidebar() {
 
     useEffect(() => {
         if (!socket) return;
+
         const handleNotification = () => {
             setUnreadCount(prev => prev + 1);
-            // Optional: Play sound
         };
+
+        const handleReceiveMessage = (data: any) => {
+            // Increment unread count if we are not on that chat
+            // For simplicity, we just refetch or increment. 
+            // Ideally we check if we are currently viewing that chat.
+            setMessageUnreadCount(prev => prev + 1);
+        };
+
+        const handleUnreadUpdate = () => {
+            api.get('/chat/unread-count').then(res => setMessageUnreadCount(res.data.count));
+        };
+
         socket.on('new_notification', handleNotification);
+        socket.on('receive_message', handleReceiveMessage);
+        socket.on('unread_update', handleUnreadUpdate);
+
         return () => {
             socket.off('new_notification', handleNotification);
+            socket.off('receive_message', handleReceiveMessage);
+            socket.off('unread_update', handleUnreadUpdate);
         };
     }, [socket]);
+
+    // Reset unread when visiting messages page (or specific chat)
+    // Since /chat/:id/read is called in ChatWindow, we mainly need to decrement when opening a chat.
+    // For now, let's refetch when pathname changes to /messages
+    useEffect(() => {
+        if (pathname.startsWith('/messages')) {
+            api.get('/chat/unread-count').then(res => setMessageUnreadCount(res.data.count));
+        }
+    }, [pathname]);
 
     // Reset unread when visiting notifications page
     useEffect(() => {
@@ -140,6 +170,7 @@ export function Sidebar() {
                     icon={MessageSquare}
                     label="Messages"
                     isActive={pathname === '/messages'}
+                    badge={messageUnreadCount > 0 ? messageUnreadCount : undefined}
                 />
             </Link>
 

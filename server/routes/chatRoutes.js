@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
-const { getConversations, getMessages, sendMessage, markAsRead } = require('../controllers/chatController');
+const { getConversations, getMessages, sendMessage, markAsRead, getUnreadCount } = require('../controllers/chatController');
 const multer = require('multer');
 const path = require('path');
 
@@ -17,6 +17,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.get('/conversations', protect, getConversations);
+router.get('/unread-count', protect, getUnreadCount);
 router.get('/:userId', protect, getMessages);
 router.post('/', protect, upload.single('image'), sendMessage);
 router.put('/:userId/read', protect, markAsRead);

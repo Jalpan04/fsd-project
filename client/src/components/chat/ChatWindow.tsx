@@ -2,12 +2,16 @@ import React, { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/hooks/useAuth';
+import ImageModal from '../shared/ImageModal';
 import { Send, ArrowLeft, MoreVertical, Paperclip, Smile, Check, CheckCheck, Clock, X, Image as ImageIcon } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isToday, isYesterday, format } from 'date-fns';
+import EmojiPicker from 'emoji-picker-react';
+import PostCard from '@/components/feed/PostCard';
 
 interface ChatWindowProps {
     recipient: any;
     onBack: () => void;
+    onMessageSent?: (message: Message) => void;
 }
 
 interface Message {
@@ -15,27 +19,44 @@ interface Message {
     sender: string; // ID
     content: string;
     image?: string;
+    sharedPost?: any; // Populated post object
     createdAt: string;
     read?: boolean;
 }
 
-export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
+export default function ChatWindow({ recipient, onBack, onMessageSent }: ChatWindowProps) {
     const { user } = useAuth();
     const { socket } = useSocket();
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [newMessage, setNewMessage] = useState('');
+    const [messageInput, setMessageInput] = useState('');
+    const [messages, setMessages] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [expandedImage, setExpandedImage] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
     const [sending, setSending] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
-    
+
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Initial scroll to bottom
+    const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+        messagesEndRef.current?.scrollIntoView({ behavior });
+    };
+
+    // Keep track of if we should auto-scroll (i.e. if we are already at bottom)
+    const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+    const handleScroll = () => {
+        if (!scrollContainerRef.current) return;
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+        // Check if we are near bottom (within 50px)
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+        setShouldAutoScroll(isNearBottom);
     };
 
     const markMessagesAsRead = async () => {
@@ -47,11 +68,14 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
         }
     };
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
             setSelectedFile(file);
-            setPreviewUrl(URL.createObjectURL(file));
+            // Create preview URL
+            const url = URL.createObjectURL(file);
+            setPreviewUrl(url);
+            setMessageInput(prev => `${prev} [Image Selected] `);
         }
     };
 
@@ -72,7 +96,8 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
                 // 2. Fetch messages
                 const { data } = await api.get(`/chat/${recipient._id}`);
                 setMessages(data);
-                scrollToBottom();
+                // Force scroll on initial load
+                setTimeout(() => scrollToBottom("auto"), 100);
             } catch (error) {
                 console.error("Failed to fetch messages", error);
             }
@@ -80,9 +105,18 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
         fetchMessages();
     }, [recipient, user]);
 
+    // Auto-scroll effect
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, isTyping, previewUrl]);
+        if (shouldAutoScroll) {
+            scrollToBottom();
+        }
+    }, [messages, shouldAutoScroll]); // Only scroll if we were already at bottom
+
+    // Force scroll when typing starts/stops if near bottom? Maybe not needed.
+    // Force scroll when previewing image
+    useEffect(() => {
+        if (previewUrl) scrollToBottom();
+    }, [previewUrl]);
 
     useEffect(() => {
         if (!socket) return;
@@ -96,9 +130,9 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
         };
 
         const handleTyping = (data: any) => {
-             if (data.senderId === recipient._id) {
-                 setIsTyping(true);
-             }
+            if (data.senderId === recipient._id) {
+                setIsTyping(true);
+            }
         };
 
         const handleStopTyping = (data: any) => {
@@ -110,7 +144,7 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
         const handleMessagesRead = (data: any) => {
             // If the other person read OUR messages
             if (data.readerId === recipient._id) {
-                setMessages(prev => prev.map(msg => 
+                setMessages(prev => prev.map(msg =>
                     msg.sender === user?._id ? { ...msg, read: true } : msg
                 ));
             }
@@ -130,7 +164,7 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
     }, [socket, recipient]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setNewMessage(e.target.value);
+        setMessageInput(e.target.value);
 
         if (!socket || !recipient) return;
 
@@ -144,11 +178,15 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
         }, 2000);
     };
 
+    const onEmojiClick = (emojiObject: any) => {
+        setMessageInput(prev => prev + emojiObject.emoji);
+    };
+
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if ((!newMessage.trim() && !selectedFile) || !user) return;
-        
+
+        if ((!messageInput.trim() && !selectedFile) || !user) return;
+
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         socket?.emit('stop_typing', { recipientId: recipient._id });
 
@@ -156,16 +194,17 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
         try {
             const formData = new FormData();
             formData.append('recipientId', recipient._id);
-            if (newMessage.trim()) formData.append('content', newMessage);
+            if (messageInput.trim()) formData.append('content', messageInput);
             if (selectedFile) formData.append('image', selectedFile);
 
             const { data } = await api.post('/chat', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            
+
             setMessages((prev) => [...prev, data]);
-            setNewMessage('');
+            setMessageInput('');
             clearFile();
+            if (onMessageSent) onMessageSent(data);
         } catch (error) {
             console.error("Failed to send message", error);
         } finally {
@@ -175,7 +214,7 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
 
     return (
         <div className="flex flex-col h-full bg-[hsl(var(--ide-bg))] relative overflow-hidden">
-            
+
             {/* Background Grid Pattern for Tech Feel */}
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#4f4f4f 1px, transparent 1px), linear-gradient(90deg, #4f4f4f 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
@@ -185,14 +224,14 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
                     <button onClick={onBack} className="md:hidden text-gray-400 hover:text-white transition-colors">
                         <ArrowLeft size={20} />
                     </button>
-                    
+
                     <div className="relative">
-                        <img 
-                            src={recipient.avatarUrl || `https://ui-avatars.com/api/?name=${recipient.username}&background=0f172a&color=3b82f6`} 
+                        <img
+                            src={recipient.avatarUrl || `https://ui-avatars.com/api/?name=${recipient.username}&background=0f172a&color=3b82f6`}
                             className="w-10 h-10 rounded-lg object-cover bg-black border border-gray-700"
                             alt={recipient.username}
                         />
-                         <div className="absolute -bottom-1 -right-1 bg-black p-0.5 rounded-full">
+                        <div className="absolute -bottom-1 -right-1 bg-black p-0.5 rounded-full">
                             <span className="block w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
                         </div>
                     </div>
@@ -200,7 +239,7 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
                     <div>
                         <h3 className="text-sm font-bold text-white tracking-wide">{recipient.displayName || recipient.username}</h3>
                         <div className="flex items-center gap-2">
-                             <span className="text-[10px] uppercase tracking-wider text-emerald-500 font-mono">● Secured Connect</span>
+                            <span className="text-[10px] uppercase tracking-wider text-emerald-500 font-mono">● Secured Connect</span>
                         </div>
                     </div>
                 </div>
@@ -210,76 +249,120 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 flex flex-col justify-end min-h-0 relative z-10">
-                <div className="flex-1" /> {/* Scroll spacer */}
-                
-                {messages.length === 0 && (
-                     <div className="text-center text-gray-600 my-auto">
-                        <div className="w-16 h-16 mx-auto mb-4 border border-dashed border-gray-700 rounded-full flex items-center justify-center">
-                             <div className="w-2 h-2 bg-cyan-500 rounded-full animate-ping" />
+            <div
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-4 flex flex-col relative z-10 w-full"
+            >
+                <div className="mt-auto flex flex-col justify-end"> {/* Use mt-auto to push content to bottom */}
+
+                    {messages.length === 0 && (
+                        <div className="text-center text-gray-600 my-auto">
+                            <div className="w-16 h-16 mx-auto mb-4 border border-dashed border-gray-700 rounded-full flex items-center justify-center">
+                                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-ping" />
+                            </div>
+                            <p className="font-mono text-sm">INITIALIZING UPLINK...</p>
+                            <p className="text-xs mt-2 opacity-50">Send a packet to begin.</p>
                         </div>
-                        <p className="font-mono text-sm">INITIALIZING UPLINK...</p>
-                        <p className="text-xs mt-2 opacity-50">Send a packet to begin.</p>
-                     </div>
-                )}
+                    )}
 
-                {messages.map((msg, index) => {
-                    const isMe = msg.sender === user?._id;
-                    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-                    const imageUrl = msg.image ? (msg.image.startsWith('http') ? msg.image : `${API_URL}${msg.image}`) : null;
+                    {messages.map((msg, index) => {
+                        const isMe = msg.sender === user?._id;
+                        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+                        const imageUrl = msg.image ? (msg.image.startsWith('http') ? msg.image : `${API_URL}${msg.image}`) : null;
+                        const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-                    return (
-                        <div key={msg._id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group animate-in slide-in-from-bottom-2 fade-in duration-300`}>
-                            <div className={`max-w-[75%] relative ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
-                                
-                                {/* Image Attachment */}
-                                {imageUrl && (
-                                    <div className={`mb-2 overflow-hidden rounded-lg border border-[hsl(var(--ide-border))] ${isMe ? 'bg-cyan-900/10' : 'bg-gray-800/20'}`}>
-                                        <img src={imageUrl} alt="Attachment" className="max-w-full max-h-64 object-cover" />
+                        // Grouping Logic - Previous (for top margin and timestamp)
+                        const prevMsg = messages[index - 1];
+                        const isSameSenderAsPrev = prevMsg && prevMsg.sender === msg.sender;
+                        const timeDiffPrev = prevMsg ? new Date(msg.createdAt).getTime() - new Date(prevMsg.createdAt).getTime() : Infinity;
+                        const isSequence = isSameSenderAsPrev && timeDiffPrev < 5 * 60 * 1000; // 5 minutes
+
+                        // Grouping Logic - Next (for ticks)
+                        const nextMsg = messages[index + 1];
+                        const isSameSenderAsNext = nextMsg && nextMsg.sender === msg.sender;
+                        const timeDiffNext = nextMsg ? new Date(nextMsg.createdAt).getTime() - new Date(msg.createdAt).getTime() : Infinity;
+                        const isLastInSequence = !isSameSenderAsNext || timeDiffNext >= 5 * 60 * 1000;
+
+                        // Date grouping
+                        const isNewDay = !prevMsg || new Date(msg.createdAt).toDateString() !== new Date(prevMsg.createdAt).toDateString();
+
+                        let dateLabel = '';
+                        if (isNewDay) {
+                            const date = new Date(msg.createdAt);
+                            if (isToday(date)) dateLabel = 'Today';
+                            else if (isYesterday(date)) dateLabel = 'Yesterday';
+                            else dateLabel = format(date, 'MMMM d, yyyy');
+                        }
+
+                        return (
+                            <div key={msg._id} className="w-full">
+                                {isNewDay && (
+                                    <div className="flex justify-center my-6">
+                                        <span className="text-[11px] font-mono text-gray-500 bg-gray-900/50 px-3 py-1 rounded-full border border-gray-800">
+                                            {dateLabel}
+                                        </span>
                                     </div>
                                 )}
 
-                                {/* Text Content */}
-                                {msg.content && (
-                                    <div className={`relative px-5 py-3 text-sm border backdrop-blur-sm shadow-sm ${
-                                        isMe 
-                                        ? 'bg-cyan-900/20 border-cyan-500/30 text-cyan-50 rounded-2xl rounded-tr-sm' 
-                                        : 'bg-gray-800/40 border-gray-700/50 text-gray-200 rounded-2xl rounded-tl-sm'
-                                    }`}>
-                                        <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                                    </div>
-                                )}
+                                <div className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'} group animate-in slide-in-from-bottom-2 fade-in duration-300 ${isSequence ? 'mt-1' : 'mt-6'}`}>
+                                    <div className={`max-w-[75%] relative ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
 
-                                {/* Metadata Row */}
-                                <div className={`flex items-center gap-2 mt-1.5 px-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    <span className="text-[10px] text-gray-500 font-mono opacity-60 uppercase">
-                                        {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
-                                    </span>
-                                    
-                                    {isMe && (
-                                        <div className={`flex transition-colors ${msg.read ? 'text-cyan-400' : 'text-gray-500'} opacity-80`}>
-                                            <CheckCheck size={14} />
+                                        {msg.image && (
+                                            <div className="mb-2 cursor-pointer" onClick={() => setExpandedImage(`${BASE_URL}${msg.image}`)}>
+                                                <img src={`${BASE_URL}${msg.image}`} alt="Attachment" className="rounded-lg max-w-full h-auto" />
+                                            </div>
+                                        )}
+
+                                        {msg.sharedPost && (
+                                            <div className="mb-2 w-[400px] max-w-full border border-gray-700/50 rounded-lg overflow-hidden">
+                                                <PostCard post={msg.sharedPost} />
+                                            </div>
+                                        )}
+
+                                        {msg.content && (
+                                            <div className={`relative px-5 py-3 text-sm border backdrop-blur-sm shadow-sm ${isMe
+                                                ? 'bg-cyan-900/20 border-cyan-500/30 text-cyan-50 rounded-2xl rounded-tr-sm'
+                                                : 'bg-gray-800/40 border-gray-700/50 text-gray-200 rounded-2xl rounded-tl-sm'
+                                                } transition-all hover:scale-[1.01]`}>
+                                                <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Metadata Row */}
+                                        <div className={`flex items-center gap-1 mt-1 text-[10px] ${isMe ? 'text-cyan-200/60' : 'text-gray-400'} min-h-[5px]`}>
+                                            {!isSequence && (
+                                                <span className="font-mono opacity-60 uppercase mb-1 block">
+                                                    {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+                                                </span>
+                                            )}
+
+                                            {isMe && isLastInSequence && (
+                                                <div className={`flex transition-colors ${msg.read ? 'text-cyan-400' : 'text-gray-500'} opacity-80 ml-auto`}>
+                                                    <CheckCheck size={14} />
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
 
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Typing Indicator */}
+                    {isTyping && (
+                        <div className="flex w-full justify-start animate-in fade-in duration-300">
+                            <div className="bg-gray-800/40 border border-gray-700/50 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce" />
                             </div>
                         </div>
-                    );
-                })}
-                
-                {/* Typing Indicator */}
-                {isTyping && (
-                    <div className="flex w-full justify-start animate-in fade-in duration-300">
-                         <div className="bg-gray-800/40 border border-gray-700/50 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                            <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                            <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce" />
-                         </div>
-                    </div>
-                )}
+                    )}
 
-                <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} className="h-4" /> {/* Spacer at bottom */}
+                </div> {/* End Wrapper */}
             </div>
 
             {/* Input Area */}
@@ -301,18 +384,30 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
                 )}
 
                 <form onSubmit={handleSendMessage} className="relative flex items-end gap-2 bg-black/40 border border-gray-700/50 rounded-xl p-2 focus-within:border-cyan-500/50 focus-within:ring-1 focus-within:ring-cyan-500/20 transition-all">
-                    
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        className="hidden" 
+
+                    {/* Emoji Picker Popup */}
+                    {showEmojiPicker && (
+                        <div className="absolute bottom-full right-0 mb-2 z-50 shadow-xl border border-gray-700 rounded-xl overflow-hidden">
+                            <EmojiPicker
+                                onEmojiClick={onEmojiClick}
+                                theme={'dark' as any}
+                                width={300}
+                                height={400}
+                            />
+                        </div>
+                    )}
+
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
                         accept="image/*"
-                        onChange={handleFileSelect}
+                        onChange={handleFileChange}
                     />
 
                     {/* Attachments */}
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         onClick={() => fileInputRef.current?.click()}
                         className={`p-2 transition-colors ${selectedFile ? 'text-cyan-400' : 'text-gray-500 hover:text-cyan-400'}`}
                     >
@@ -321,26 +416,37 @@ export default function ChatWindow({ recipient, onBack }: ChatWindowProps) {
 
                     <input
                         type="text"
-                        value={newMessage}
-                        onChange={handleInputChange}
-                        placeholder="Enter command or message..."
-                        className="flex-1 bg-transparent border-none px-2 py-2 text-sm text-gray-200 focus:outline-none font-mono placeholder:text-gray-600"
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        placeholder="Type a message..."
+                        className="flex-1 bg-transparent border-0 focus:ring-0 text-white placeholder-gray-500 text-sm font-mono"
                     />
 
                     {/* Emoji */}
-                    <button type="button" className="p-2 text-gray-500 hover:text-yellow-400 transition-colors">
-                        <Smile size={18} />
+                    <button
+                        type="button"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className={`p-2 hover:bg-white/10 rounded-full transition-colors ${showEmojiPicker ? 'text-cyan-400' : 'text-gray-400'}`}
+                    >
+                        <Smile size={20} />
                     </button>
 
-                    <button 
-                        type="submit" 
-                        disabled={sending || (!newMessage.trim() && !selectedFile)}
-                        className="p-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-cyan-900/20"
+                    <button
+                        type="submit"
+                        disabled={sending || (!messageInput.trim() && !selectedFile)}
+                        className="p-2 bg-gradient-to-r from-cyan-600 to-cyan-500 rounded-lg text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {sending ? <Clock size={18} className="animate-spin" /> : <Send size={18} />}
                     </button>
                 </form>
             </div>
+            {/* Image Modal */}
+            {expandedImage && (
+                <ImageModal
+                    src={expandedImage}
+                    onClose={() => setExpandedImage(null)}
+                />
+            )}
         </div>
     );
 }

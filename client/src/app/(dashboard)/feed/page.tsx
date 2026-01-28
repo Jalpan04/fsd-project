@@ -32,7 +32,7 @@ export default function FeedPage() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'discover' | 'following'>('discover');
+  const [activeTab, setActiveTab] = useState<'discover' | 'following' | 'my_posts'>('discover');
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
 
@@ -40,9 +40,9 @@ export default function FeedPage() {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const endpoint = activeTab === 'following'
-          ? '/posts/following'
-          : '/posts';
+        let endpoint = '/posts';
+        if (activeTab === 'following') endpoint = '/posts/following';
+        else if (activeTab === 'my_posts' && user) endpoint = `/posts/user/${user._id}`;
 
         const response = await api.get(endpoint);
         setPosts(response.data);
@@ -52,8 +52,10 @@ export default function FeedPage() {
         setLoading(false);
       }
     };
-    fetchPosts();
-  }, [activeTab]);
+    if (user || activeTab === 'discover') {
+      fetchPosts();
+    }
+  }, [activeTab, user]);
 
   const handlePostDeleted = (postId: string) => {
     setPosts((prev) => prev.filter((p) => p._id !== postId));
@@ -110,6 +112,13 @@ export default function FeedPage() {
             >
               Following
               {activeTab === 'following' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[hsl(var(--primary))]" />}
+            </button>
+            <button
+              onClick={() => setActiveTab('my_posts')}
+              className={`pb-2 px-1 text-sm font-bold transition-colors relative ${activeTab === 'my_posts' ? 'text-[hsl(var(--foreground))]' : 'text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]'}`}
+            >
+              My Posts
+              {activeTab === 'my_posts' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[hsl(var(--primary))]" />}
             </button>
           </div>
 

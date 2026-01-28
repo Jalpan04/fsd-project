@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { MessageSquare, ThumbsUp, Send, Globe, MoreHorizontal, Loader2, Trash2, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
+import ShareModal from './ShareModal';
+import ImageModal from '../shared/ImageModal';
 
 interface Post {
   _id: string;
@@ -22,7 +24,7 @@ interface Post {
   tags: string[];
   likes: string[];
   commentsCount: number;
-  image?: string; 
+  image?: string;
 }
 
 interface Comment {
@@ -56,6 +58,14 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [commentTree, setCommentTree] = useState<Comment[]>([]);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [isContentExpanded, setIsContentExpanded] = useState(false);
+
+  // Content truncation limit
+  const MAX_CONTENT_LENGTH = 180;
+  const shouldTruncate = post.content.length > MAX_CONTENT_LENGTH;
+  const displayContent = isContentExpanded ? post.content : (shouldTruncate ? post.content.slice(0, MAX_CONTENT_LENGTH) + '...' : post.content);
 
   useEffect(() => {
     if (comments.length) {
@@ -70,18 +80,18 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
     // but here we are building a new tree view. 
     // Warning: Mutating objects in 'map' that refer to 'flatComments' elements might be mutating state if 'flatComments' is state.
     // Better to map to new objects.
-    const commentsCopy = flatComments.map(c => ({...c, children: []}));
-    
+    const commentsCopy = flatComments.map(c => ({ ...c, children: [] }));
+
     commentsCopy.forEach((c) => {
       map[c._id] = c;
     });
-    
+
     commentsCopy.forEach((c) => {
       if (c.parentComment) {
         const parent = map[c.parentComment];
         if (parent) {
-            if (!parent.children) parent.children = [];
-            parent.children.push(c);
+          if (!parent.children) parent.children = [];
+          parent.children.push(c);
         }
       } else {
         roots.push(c);
@@ -245,7 +255,7 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
 
   const handleDeleteComment = async (commentId: string, parentCommentId?: string) => {
     if (!user) return;
-    
+
     const getDescendantIds = (parentId: string, allComments: Comment[]): string[] => {
       const children = allComments.filter(c => c.parentComment === parentId);
       let ids = children.map(c => c._id);
@@ -257,22 +267,42 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
 
     try {
       await api.delete(`/posts/${post._id}/comments/${commentId}`);
-      
+
       const idsToRemove = [commentId, ...getDescendantIds(commentId, comments)];
       const filtered = comments.filter((c) => !idsToRemove.includes(c._id));
       setComments(filtered);
-      
+
       if (!parentCommentId) {
         setPost({ ...post, commentsCount: Math.max((post.commentsCount || 1) - 1, 0) });
       }
     } catch (error: any) {
       console.error('Delete comment error:', error);
       if (error.response && error.response.status === 404) {
-         const idsToRemove = [commentId, ...getDescendantIds(commentId, comments)];
-         const filtered = comments.filter((c) => !idsToRemove.includes(c._id));
-         setComments(filtered);
+        const idsToRemove = [commentId, ...getDescendantIds(commentId, comments)];
+        const filtered = comments.filter((c) => !idsToRemove.includes(c._id));
+        setComments(filtered);
       }
     }
+  };
+
+  const handleShare = () => {
+    setShowShareModal(true);
+  };
+
+  const handleSendShare = async (selectedUserIds: string[]) => {
+    // Iterate and send message to each user
+    // We can do this in parallel
+    const sharePromises = selectedUserIds.map(async (recipientId) => {
+      try {
+        await api.post('/chat', {
+          recipientId,
+          sharedPostId: post._id
+        });
+      } catch (err) {
+        console.error(`Failed to share with ${recipientId}`, err);
+      }
+    });
+    await Promise.all(sharePromises);
   };
 
   const isLiked = user && post.likes?.includes(user._id);
@@ -280,21 +310,21 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
 
   return (
     <article className="group bg-[hsl(var(--ide-bg))]/40 backdrop-blur-sm border border-[hsl(var(--ide-border))] rounded-lg overflow-hidden mb-4 hover:border-gray-600 transition-all duration-300 relative">
-      
+
       {/* Tech Corner Accent */}
       <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="w-16 h-16 bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.1),transparent_70%)]" />
+        <div className="w-16 h-16 bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.1),transparent_70%)]" />
       </div>
 
       {/* Header */}
       <div className="p-4 flex gap-3 text-sm relative z-10">
         <Link href={`/profile/${post.author.username}`} className="relative">
-             <div className="absolute -inset-0.5 rounded-full blur opacity-50 bg-gray-500/20 group-hover:bg-cyan-500/30 transition-colors" />
-            <img
+          <div className="absolute -inset-0.5 rounded-full blur opacity-50 bg-gray-500/20 group-hover:bg-cyan-500/30 transition-colors" />
+          <img
             src={post.author.avatarUrl || `https://ui-avatars.com/api/?name=${post.author.username}&background=0f172a&color=38bdf8`}
             alt={post.author.username}
             className="relative w-11 h-11 rounded-lg border border-gray-700/50 object-cover bg-black"
-            />
+          />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
@@ -304,11 +334,11 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
               </Link>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="px-1.5 py-0.5 rounded-sm bg-gray-800/50 text-[10px] text-gray-400 font-mono border border-gray-700/50">
-                    {post.author.headline || "Dev_Unit"}
+                  {post.author.headline || "Dev_Unit"}
                 </span>
                 <span className="text-[10px] text-gray-600 font-mono flex items-center gap-1">
-                    <Clock size={10} />
-                    {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                  <Clock size={10} />
+                  {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
                 </span>
               </div>
             </div>
@@ -327,30 +357,49 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
       </div>
 
       {/* Content */}
-      <Link href={`/post/${post.slug || post._id}`} className="block px-4 pb-3 text-sm text-gray-300 whitespace-pre-wrap leading-relaxed hover:text-gray-200 transition-colors">
-        {post.content}
-      </Link>
+      <div className="px-4 pb-3">
+        <Link
+          href={`/post/${post.slug || post._id}`}
+          className={`block text-sm text-gray-300 whitespace-pre-wrap leading-relaxed hover:text-gray-200 transition-colors mb-1 block relative ${!isContentExpanded && shouldTruncate ? 'max-h-[6em] overflow-hidden' : ''}`}
+        >
+          {post.content}
+          {!isContentExpanded && shouldTruncate && (
+            <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+          )}
+        </Link>
+        {shouldTruncate && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setIsContentExpanded(!isContentExpanded);
+            }}
+            className="text-cyan-500 hover:text-cyan-400 text-xs font-semibold mt-1 focus:outline-none"
+          >
+            {isContentExpanded ? 'Show Less' : 'Read More'}
+          </button>
+        )}
+      </div>
 
       {post.image && (
-        <div className="mt-2 mb-2 border-y border-[hsl(var(--ide-border))] bg-black/50">
-            <img 
-                src={`${BASE_URL}${post.image}`} 
-                alt="Post content" 
-                className="w-full h-auto object-cover max-h-[500px]"
-            />
+        <div className="mt-2 mb-2 border-y border-[hsl(var(--ide-border))] bg-black/50 cursor-pointer" onClick={() => setExpandedImage(`${BASE_URL}${post.image}`)}>
+          <img
+            src={`${BASE_URL}${post.image}`}
+            alt="Post content"
+            className="w-full h-auto object-cover max-h-[500px]"
+          />
         </div>
       )}
 
       {/* Stats Bar */}
       <div className="px-4 py-2 border-t border-[hsl(var(--ide-border))] bg-black/10 flex items-center justify-between text-[11px] text-gray-500 font-mono uppercase tracking-wider">
-          <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1">
-                  <ThumbsUp size={12} className={post.likes?.length ? "text-cyan-500" : ""} /> {post.likes?.length || 0} Synchs
-              </span>
-              <span className="flex items-center gap-1">
-                  <MessageSquare size={12} /> {post.commentsCount || 0} Packets
-              </span>
-          </div>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <ThumbsUp size={12} className={post.likes?.length ? "text-cyan-500" : ""} /> {post.likes?.length || 0} Synchs
+          </span>
+          <span className="flex items-center gap-1">
+            <MessageSquare size={12} /> {post.commentsCount || 0} Packets
+          </span>
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -367,11 +416,14 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
         >
           <MessageSquare size={16} />
         </button>
-        <button className="flex items-center justify-center gap-2 py-3 bg-[hsl(var(--ide-bg))] hover:bg-white/5 transition-colors text-gray-400 hover:text-white">
+        <button
+          onClick={handleShare}
+          className="flex items-center justify-center gap-2 py-3 bg-[hsl(var(--ide-bg))] hover:bg-white/5 transition-colors text-gray-400 hover:text-white"
+        >
           <Send size={16} />
         </button>
         <button className="flex items-center justify-center gap-2 py-3 bg-[hsl(var(--ide-bg))] hover:bg-white/5 transition-colors text-gray-400 hover:text-white">
-            <Globe size={16} />
+          <Globe size={16} />
         </button>
       </div>
 
@@ -418,6 +470,23 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
             </div>
           )}
         </div>
+      )}
+      {/* Share Modal */}
+      {showShareModal && user && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          users={user.following || []}
+          onSend={handleSendShare}
+        />
+      )}
+
+      {/* Image Modal */}
+      {expandedImage && (
+        <ImageModal
+          src={expandedImage}
+          onClose={() => setExpandedImage(null)}
+        />
       )}
     </article>
   );

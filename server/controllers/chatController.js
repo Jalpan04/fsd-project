@@ -11,9 +11,33 @@ const getConversations = async (req, res) => {
         const conversations = await Conversation.find({
             participants: { $in: [req.user._id] }
         })
-        .populate('participants', 'displayName username avatarUrl')
-        .populate('lastMessage')
-        .sort({ updatedAt: -1 });
+            .populate('participants', 'displayName username avatarUrl')
+            .populate({
+                path: 'lastMessage',
+                populate: { path: 'sharedPost', select: 'content' } // Optional preview
+            })
+            .sort({ updatedAt: -1 });
+
+        // Count unread messages per sender
+        const unreadCounts = await Message.aggregate([
+            {
+                $match: {
+                    recipient: req.user._id,
+                    read: false
+                }
+            },
+            {
+                $group: {
+                    _id: '$sender',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const unreadMap = {};
+        unreadCounts.forEach(u => {
+            unreadMap[u._id.toString()] = u.count;
+        });
 
         // Transform to friendly format (remove self from participants)
         const formatted = conversations.map(conv => {
@@ -24,7 +48,8 @@ const getConversations = async (req, res) => {
                 _id: conv._id,
                 partner: otherParticipant,
                 lastMessage: conv.lastMessage,
-                updatedAt: conv.updatedAt
+                updatedAt: conv.updatedAt,
+                unreadCount: otherParticipant ? (unreadMap[otherParticipant._id.toString()] || 0) : 0
             };
         });
 
@@ -41,7 +66,7 @@ const getConversations = async (req, res) => {
 const getMessages = async (req, res) => {
     try {
         const { userId } = req.params;
-        
+
         // Find messages where (sender is me AND recipient is them) OR (sender is them AND recipient is me)
         const messages = await Message.find({
             $or: [
@@ -49,7 +74,11 @@ const getMessages = async (req, res) => {
                 { sender: userId, recipient: req.user._id }
             ]
         })
-        .sort({ createdAt: 1 });
+            .populate({
+                path: 'sharedPost',
+                populate: { path: 'author', select: 'displayName username avatarUrl' }
+            })
+            .sort({ createdAt: 1 });
 
         res.json(messages);
     } catch (error) {
@@ -63,11 +92,11 @@ const getMessages = async (req, res) => {
 // @access  Private
 const sendMessage = async (req, res) => {
     try {
-        const { recipientId, content } = req.body;
+        const { recipientId, content, sharedPostId } = req.body;
         const image = req.file ? `/uploads/${req.file.filename}` : null;
 
-        if (!recipientId || (!content && !image)) {
-            return res.status(400).json({ message: 'Recipient and content or image are required' });
+        if (!recipientId || (!content && !image && !sharedPostId)) {
+            return res.status(400).json({ message: 'Recipient and content or image or shared post are required' });
         }
 
         // 1. Create Message
@@ -75,7 +104,8 @@ const sendMessage = async (req, res) => {
             sender: req.user._id,
             recipient: recipientId,
             content: content || '',
-            image
+            image,
+            sharedPost: sharedPostId || null
         });
 
         // 2. Find or Create Conversation
@@ -101,8 +131,13 @@ const sendMessage = async (req, res) => {
         try {
             const io = getIo();
             // Emit to recipient's room (their User ID)
+            const populatedMessage = await Message.findById(newMessage._id).populate({
+                path: 'sharedPost',
+                populate: { path: 'author', select: 'displayName username avatarUrl' }
+            });
+
             io.to(recipientId).emit('receive_message', {
-                message: newMessage,
+                message: populatedMessage,
                 sender: {
                     _id: req.user._id,
                     username: req.user.username,
@@ -140,8 +175,12 @@ const markAsRead = async (req, res) => {
             const io = getIo();
             io.to(userId).emit('messages_read', {
                 readerId: req.user._id,
-                conversationId: userId // or actual conv ID if needed
+                conversationId: userId
             });
+
+            // Emit 'unread_update' to SELF (the reader) so Sidebar badge updates
+            io.to(req.user._id.toString()).emit('unread_update');
+
         } catch (err) {
             console.error('Socket error in markAsRead:', err);
         }
@@ -153,9 +192,28 @@ const markAsRead = async (req, res) => {
     }
 };
 
+// @desc    Get count of conversations with unread messages
+// @route   GET /api/chat/unread-count
+// @access  Private
+const getUnreadCount = async (req, res) => {
+    try {
+        // Count distinct senders of unread messages addressed to current user
+        const unreadSenders = await Message.distinct('sender', {
+            recipient: req.user._id,
+            read: false
+        });
+
+        res.json({ count: unreadSenders.length });
+    } catch (error) {
+        console.error('Get Unread Count Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 module.exports = {
     getConversations,
     getMessages,
     sendMessage,
-    markAsRead
+    markAsRead,
+    getUnreadCount
 };

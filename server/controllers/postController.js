@@ -35,7 +35,7 @@ const createPost = async (req, res) => {
             tags: tags ? (Array.isArray(tags) ? tags : JSON.parse(tags)) : [], // Handle possible JSON string from FormData
             slug,
             author: req.user._id,
-            image: req.file ? `/uploads/${req.file.filename}` : null,
+            image: req.file ? `/uploads/${req.file.filename}` : (req.body.image || null),
             commentsCount: 0,
             likes: [],
             isPublished: true
@@ -76,12 +76,12 @@ const getPostBySlug = async (req, res) => {
     try {
         const post = await Post.findOne({ slug: req.params.slug })
             .populate('author', 'displayName username avatarUrl');
-        
+
         if (!post) {
-             // Fallback: Check if valid ObjectId
+            // Fallback: Check if valid ObjectId
             if (req.params.slug.match(/^[0-9a-fA-F]{24}$/)) {
-                 const postById = await Post.findById(req.params.slug).populate('author', 'displayName username avatarUrl');
-                 if (postById) return res.json(postById);
+                const postById = await Post.findById(req.params.slug).populate('author', 'displayName username avatarUrl');
+                if (postById) return res.json(postById);
             }
             return res.status(404).json({ message: 'Post not found' });
         }
@@ -104,7 +104,7 @@ const likePost = async (req, res) => {
         const index = post.likes.findIndex(id => id.toString() === req.user._id.toString());
         if (index === -1) {
             post.likes.push(req.user._id);
-             // Create Notification
+            // Create Notification
             if (post.author.toString() !== req.user._id.toString()) {
                 const notification = await Notification.create({
                     recipient: post.author,
@@ -142,7 +142,7 @@ const likePost = async (req, res) => {
 // @access  Private
 const createComment = async (req, res) => {
     try {
-        const { content, parentComment } = req.body; 
+        const { content, parentComment } = req.body;
         const post = await Post.findById(req.params.id);
         if (!post) {
             return res.status(404).json({ message: 'Post not found' });
@@ -164,17 +164,17 @@ const createComment = async (req, res) => {
         // Create Notification
         let recipientId = post.author;
         let type = 'comment';
-        
+
         if (parentComment) {
-             const parent = await Comment.findById(parentComment);
-             if (parent) {
-                 recipientId = parent.author;
-                 type = 'reply';
-             }
+            const parent = await Comment.findById(parentComment);
+            if (parent) {
+                recipientId = parent.author;
+                type = 'reply';
+            }
         }
-        
+
         if (recipientId.toString() !== req.user._id.toString()) {
-             const notification = await Notification.create({
+            const notification = await Notification.create({
                 recipient: recipientId,
                 sender: req.user._id,
                 type: type,
@@ -325,12 +325,12 @@ const getFollowingPosts = async (req, res) => {
             return res.json([]);
         }
 
-        const posts = await Post.find({ 
-            author: { $in: following }, 
-            isPublished: true 
+        const posts = await Post.find({
+            author: { $in: following },
+            isPublished: true
         })
-        .populate('author', 'displayName username avatarUrl')
-        .sort({ createdAt: -1 });
+            .populate('author', 'displayName username avatarUrl')
+            .sort({ createdAt: -1 });
 
         res.json(posts);
     } catch (error) {
