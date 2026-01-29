@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { X, Award } from 'lucide-react';
+import DatePicker from '../shared/DatePicker';
 
 interface AddCertificateModalProps {
     onClose: () => void;
@@ -54,10 +55,9 @@ export default function AddCertificateModal({ onClose, onSave }: AddCertificateM
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-400 mb-1 uppercase">Date Issued</label>
-                        <input 
-                            type="date"
-                            className="w-full bg-black/30 border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:border-cyan-500 transition-colors"
-                            value={date} onChange={(e) => setDate(e.target.value)}
+                        <DatePicker 
+                            value={date} 
+                            onChange={setDate} 
                         />
                     </div>
                     <div>

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Award, Calendar, Link as LinkIcon, Building2 } from 'lucide-react';
+import DatePicker from '@/components/shared/DatePicker';
 
 export default function AddCertificatePage() {
     const router = useRouter();
@@ -43,8 +44,8 @@ export default function AddCertificatePage() {
                 <ArrowLeft size={18} /> Back
             </button>
 
-            <div className="bg-[hsl(var(--ide-sidebar))] border border-[hsl(var(--ide-border))] rounded-lg shadow-xl overflow-hidden">
-                <header className="p-6 border-b border-[hsl(var(--ide-border))]">
+            <div className="bg-[hsl(var(--ide-sidebar))] border border-[hsl(var(--ide-border))] rounded-lg shadow-xl">
+                <header className="p-6 border-b border-[hsl(var(--ide-border))] rounded-t-lg">
                     <h1 className="text-2xl font-bold text-white flex items-center gap-3">
                         <Award className="text-yellow-500" /> Add Certification
                     </h1>
@@ -85,15 +86,10 @@ export default function AddCertificatePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-2">Issue Date</label>
-                            <div className="relative">
-                                <Calendar className="absolute left-3 top-2.5 text-gray-500" size={18} />
-                                <input
-                                    type="date"
-                                    className="w-full bg-black/30 border border-gray-700 rounded-lg py-2.5 pl-10 pr-4 text-white focus:outline-none focus:border-cyan-500 transition-colors "
-                                    value={date}
-                                    onChange={(e) => setDate(e.target.value)}
-                                />
-                            </div>
+                            <DatePicker 
+                                value={date} 
+                                onChange={setDate} 
+                            />
                         </div>
 
                         <div>
