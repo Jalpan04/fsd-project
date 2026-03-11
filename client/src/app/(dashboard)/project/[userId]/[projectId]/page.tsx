@@ -5,6 +5,7 @@ import api, { BASE_URL } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 import { Loader2, ArrowLeft, ExternalLink, Calendar, User, Code2, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import ImageModal from '@/components/shared/ImageModal';
 
 export default function ProjectPage() {
     const params = useParams();
@@ -16,6 +17,7 @@ export default function ProjectPage() {
     const [author, setAuthor] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [deleting, setDeleting] = useState(false);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     const getImageUrl = (path: string) => {
         if (!path) return '';
@@ -132,14 +134,21 @@ export default function ProjectPage() {
                                     {/* Handle new images array */}
                                     {project.images && project.images.length > 0 ? (
                                         project.images.map((img: string, idx: number) => (
-                                            <div key={idx} className="rounded-xl overflow-hidden border border-gray-800 shadow-2xl hover:scale-105 transition-transform">
+                                            <div 
+                                                key={idx} 
+                                                className="rounded-xl overflow-hidden border border-gray-800 shadow-2xl hover:scale-105 transition-transform cursor-pointer"
+                                                onClick={() => setSelectedImage(getImageUrl(img))}
+                                            >
                                                 <img src={getImageUrl(img)} alt={`${project.title} - ${idx + 1}`} className="w-full h-auto object-cover" />
                                             </div>
                                         ))
                                     ) : (
                                         /* Backward compatibility with old 'image' field */
                                         project.image && (
-                                            <div className="md:col-span-2 rounded-xl overflow-hidden border border-gray-800 shadow-2xl">
+                                            <div 
+                                                className="md:col-span-2 rounded-xl overflow-hidden border border-gray-800 shadow-2xl cursor-pointer"
+                                                onClick={() => setSelectedImage(getImageUrl(project.image))}
+                                            >
                                                 <img src={getImageUrl(project.image)} alt={project.title} className="w-full h-auto object-cover" />
                                             </div>
                                         )
@@ -167,6 +176,13 @@ export default function ProjectPage() {
                     </div>
                 </div>
             </article>
+
+            {selectedImage && (
+                <ImageModal
+                    src={selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                />
+            )}
         </div>
     );
 }
