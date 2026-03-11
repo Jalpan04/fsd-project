@@ -21,7 +21,7 @@ export default function ProjectPage() {
 
     const getImageUrl = (path: string) => {
         if (!path) return '';
-        if (path.startsWith('http')) return path;
+        if (path.startsWith('http') || path.startsWith('https://res.cloudinary.com')) return path;
         return `${BASE_URL}${path}`;
     };
 

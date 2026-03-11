@@ -9,9 +9,8 @@ router.post('/', upload.single('image'), (req, res) => {
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
-        // Return the path that can be used to access the file
-        // Since we will serve 'uploads' statically at '/uploads', the path is /uploads/filename
-        const filePath = `/uploads/${req.file.filename}`;
+        // CloudinaryStorage attaches the full URL to req.file.path
+        const filePath = req.file.path;
         
         res.status(200).json({ 
             message: 'File uploaded successfully',

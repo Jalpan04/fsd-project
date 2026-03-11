@@ -336,8 +336,8 @@ export default function ChatWindow({ recipient, onBack, onMessageSent }: ChatWin
                                     <div className={`max-w-[75%] relative ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
 
                                         {msg.image && (
-                                            <div className="mb-2 cursor-pointer" onClick={() => setExpandedImage(`${BASE_URL}${msg.image}`)}>
-                                                <img src={`${BASE_URL}${msg.image}`} alt="Attachment" className="rounded-lg w-72 h-48 object-cover border border-gray-700/50" />
+                                            <div className="mb-2 cursor-pointer" onClick={() => setExpandedImage(msg.image.startsWith('http') || msg.image.startsWith('https://res.cloudinary.com') ? msg.image : `${BASE_URL}${msg.image}`)}>
+                                                <img src={msg.image.startsWith('http') || msg.image.startsWith('https://res.cloudinary.com') ? msg.image : `${BASE_URL}${msg.image}`} alt="Attachment" className="rounded-lg w-72 h-48 object-cover border border-gray-700/50" />
                                             </div>
                                         )}
 

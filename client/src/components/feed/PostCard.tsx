@@ -375,10 +375,13 @@ export default function PostCard({ post: initialPost, onPostDeleted }: PostCardP
       {post.image && (
         <div
           className="mt-2 mb-2 border-y border-[hsl(var(--ide-border))] bg-black/50 cursor-pointer"
-          onClick={(e) => { e.stopPropagation(); setExpandedImage(`${BASE_URL}${post.image}`); }}
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            setExpandedImage(post.image!.startsWith('http') || post.image!.startsWith('https://res.cloudinary.com') ? post.image as string : `${BASE_URL}${post.image}`); 
+          }}
         >
           <img
-            src={`${BASE_URL}${post.image}`}
+            src={post.image.startsWith('http') || post.image.startsWith('https://res.cloudinary.com') ? post.image : `${BASE_URL}${post.image}`}
             alt="Post content"
             className="w-full h-auto object-cover max-h-[500px]"
           />
