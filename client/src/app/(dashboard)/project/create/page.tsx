@@ -5,6 +5,7 @@ import api, { BASE_URL } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Link as LinkIcon, Code2, Type } from 'lucide-react';
 import ImageUpload from '@/components/shared/ImageUpload';
+import ImageModal from '@/components/shared/ImageModal';
 
 export default function AddProjectPage() {
     const router = useRouter();
@@ -16,6 +17,7 @@ export default function AddProjectPage() {
     const [link, setLink] = useState('');
     const [tags, setTags] = useState('');
     const [images, setImages] = useState<string[]>([]);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,7 +93,8 @@ export default function AddProjectPage() {
                                             <img
                                                 src={getImageUrl(img)}
                                                 alt={`Preview ${idx + 1}`}
-                                                className="w-full h-32 object-cover rounded-lg border border-gray-700"
+                                                className="w-full h-32 object-cover rounded-lg border border-gray-700 cursor-pointer"
+                                                onClick={() => setSelectedImage(getImageUrl(img))}
                                             />
                                             <button
                                                 type="button"
@@ -187,6 +190,13 @@ export default function AddProjectPage() {
                     </div>
                 </form>
             </div>
+
+            {selectedImage && (
+                <ImageModal
+                    src={selectedImage}
+                    onClose={() => setSelectedImage(null)}
+                />
+            )}
         </div>
     );
 }
