@@ -1,5 +1,12 @@
 # MainBranch
 
+![Next JS](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat&logo=mongodb&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=flat&logo=cloudinary&logoColor=white)
+
 ## The Professional Identity for Developers
 
 MainBranch is a comprehensive social platform and portfolio builder designed specifically for software engineers. It aggregates coding activity from across the web (GitHub, LeetCode, Kaggle, HuggingFace) into a single, dynamic profile, allowing developers to showcase their true impact.
