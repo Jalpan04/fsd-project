@@ -14,7 +14,7 @@ export default function ProjectList({ projects, isOwner, userId }: ProjectListPr
 
     const getImageUrl = (path: string) => {
         if (!path) return '';
-        if (path.startsWith('http')) return path;
+        if (path.startsWith('http') || path.startsWith('https://res.cloudinary.com')) return path;
         return `${BASE_URL}${path}`;
     };
 
