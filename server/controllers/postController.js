@@ -35,7 +35,7 @@ const createPost = async (req, res) => {
             tags: tags ? (Array.isArray(tags) ? tags : JSON.parse(tags)) : [], // Handle possible JSON string from FormData
             slug,
             author: req.user._id,
-            image: req.file ? `/uploads/${req.file.filename}` : (req.body.image || null),
+            image: req.file ? req.file.path : (req.body.image || null),
             commentsCount: 0,
             likes: [],
             isPublished: true
