@@ -54,8 +54,8 @@ export default function LoginPage() {
         <div className="min-h-screen bg-[hsl(var(--ide-bg))] flex items-center justify-center p-4">
             <div className="w-full max-w-md bg-[hsl(var(--ide-sidebar))] border border-[hsl(var(--ide-border))] rounded-lg shadow-xl p-8">
                 <div className="flex flex-col items-center mb-6">
-                    <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-4 shadow-lg shadow-cyan-900/20 overflow-hidden bg-white">
-                        <img src="/logo.png" alt="MainBranch Logo" className="w-full h-full object-cover" />
+                    <div className="w-20 h-20 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                        <img src="/logo.png" alt="MainBranch Logo" className="w-full h-full object-contain" />
                     </div>
                     <h1 className="text-2xl font-bold text-white mb-2">MainBranch</h1>
                     <p className="text-gray-400 text-center text-sm">
@@ -96,11 +96,11 @@ export default function LoginPage() {
                         
                         {authMode === 'register' && (
                              <div className="relative group">
-                                <User className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-cyan-500 transition-colors" size={18} />
+                                <User className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-primary transition-colors" size={18} />
                                 <input 
                                     type="text" 
                                     placeholder="Username" 
-                                    className="w-full bg-black/20 border border-gray-700 rounded h-10 pl-10 pr-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                                    className="w-full bg-black/20 border border-gray-700 rounded h-10 pl-10 pr-3 text-sm text-white focus:outline-none focus:border-primary transition-colors"
                                     value={formData.username}
                                     onChange={(e) => setFormData({...formData, username: e.target.value})}
                                     required
@@ -109,11 +109,11 @@ export default function LoginPage() {
                         )}
 
                         <div className="relative group">
-                            <Mail className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-cyan-500 transition-colors" size={18} />
+                            <Mail className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-primary transition-colors" size={18} />
                             <input 
                                 type="email" 
                                 placeholder="Email address" 
-                                className="w-full bg-black/20 border border-gray-700 rounded h-10 pl-10 pr-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                                className="w-full bg-black/20 border border-gray-700 rounded h-10 pl-10 pr-3 text-sm text-white focus:outline-none focus:border-primary transition-colors"
                                 value={formData.email}
                                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                                 required
@@ -121,11 +121,11 @@ export default function LoginPage() {
                         </div>
 
                         <div className="relative group">
-                            <Lock className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-cyan-500 transition-colors" size={18} />
+                            <Lock className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-primary transition-colors" size={18} />
                             <input 
                                 type="password" 
                                 placeholder="Password" 
-                                className="w-full bg-black/20 border border-gray-700 rounded h-10 pl-10 pr-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                                className="w-full bg-black/20 border border-gray-700 rounded h-10 pl-10 pr-3 text-sm text-white focus:outline-none focus:border-primary transition-colors"
                                 value={formData.password}
                                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                                 required
@@ -135,7 +135,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white h-10 rounded-md font-medium text-sm transition-colors disabled:opacity-50 flex items-center justify-center"
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-10 rounded-md font-medium text-sm transition-colors disabled:opacity-50 flex items-center justify-center shadow-lg shadow-primary/20"
                         >
                             {isLoading ? <Loader2 className="animate-spin" size={18} /> : (authMode === 'login' ? 'Sign In' : 'Create Account')}
                         </button>
@@ -148,7 +148,7 @@ export default function LoginPage() {
                                 setAuthMode(authMode === 'login' ? 'register' : 'login');
                                 setError('');
                             }}
-                            className="text-cyan-400 hover:text-cyan-300 underline"
+                            className="text-primary hover:text-primary/80 underline font-medium"
                         >
                             {authMode === 'login' ? 'Register' : 'Login'}
                         </button>
