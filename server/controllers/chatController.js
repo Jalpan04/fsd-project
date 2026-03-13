@@ -93,7 +93,7 @@ const getMessages = async (req, res) => {
 const sendMessage = async (req, res) => {
     try {
         const { recipientId, content, sharedPostId } = req.body;
-        const image = req.file ? `/uploads/${req.file.filename}` : null;
+        const image = req.file ? req.file.path : null;
 
         if (!recipientId || (!content && !image && !sharedPostId)) {
             return res.status(400).json({ message: 'Recipient and content or image or shared post are required' });

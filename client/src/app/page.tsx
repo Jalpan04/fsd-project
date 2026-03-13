@@ -2,82 +2,58 @@
 
 import Link from "next/link";
 import { Terminal, Code, Cpu } from "lucide-react";
+import GitBranchAnimation from "@/components/layout/GitBranchAnimation";
+import FeaturesSection from "@/components/layout/FeaturesSection";
+import TerminalCTA from "@/components/layout/TerminalCTA";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24 bg-[hsl(var(--ide-bg))] text-white selection:bg-cyan-500/30">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-800 bg-black/50 pb-6 pt-8 backdrop-blur-2xl lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-[hsl(var(--ide-sidebar))] lg:p-4 lg:dark:bg-[hsl(var(--ide-sidebar))]">
-          <Terminal className="mr-2" /> MainBranch v1.0
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-black via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <Link
-            href="/login"
-            className="flex place-items-center gap-2 p-4 lg:p-0 pointer-events-auto lg:pointer-events-auto"
-          >
-            <span className="text-cyan-400 hover:text-cyan-300 transition-colors pointer-events-auto cursor-pointer">Login / Register &rarr;</span>
-          </Link>
+    <main className="flex min-h-screen flex-col items-center px-6 pt-6 md:px-12 md:pt-8 bg-[hsl(var(--ide-bg))] text-white selection:bg-primary/30">
+      
+      {/* Top Header Nav */}
+      <nav className="z-50 w-full max-w-7xl flex items-center justify-between pb-2">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="MainBranch Logo" className="w-10 h-10 object-contain drop-shadow-md" />
+          <span className="font-abel text-3xl font-bold tracking-wider text-white shadow-primary/20 drop-shadow-lg">MainBranch</span>
         </div>
+        <Link
+          href="/login"
+          className="bg-primary/10 text-primary hover:bg-primary/20 hover:text-white px-6 py-2.5 rounded-full font-semibold transition-all border border-primary/30"
+        >
+          Login / Register
+        </Link>
+      </nav>
+
+      {/* Hero Section: Two Column Grid */}
+      <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center mt-2 mb-24 relative z-10">
+        
+        {/* Left Column: Typography */}
+        <div className="flex flex-col items-start text-left space-y-6 lg:pr-12 relative z-20">
+            <h1 className="font-abel text-7xl md:text-8xl lg:text-9xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 font-bold">
+                MainBranch
+            </h1>
+            <p className="text-slate-300 text-xl font-light tracking-wide max-w-2xl leading-relaxed mt-2">
+                Unify your GitHub, LeetCode, and Kaggle metrics into one dynamic developer portfolio. Showcase your best work organically and network directly with top engineers worldwide in real-time.
+            </p>
+            <div className="pt-4 flex gap-4">
+                 <Link href="/login" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 rounded-lg font-bold transition-colors shadow-[0_0_20px_rgba(166,75,42,0.3)]">
+                    Start Building Identity
+                 </Link>
+            </div>
+        </div>
+
+        {/* Right Column: Animation Graphic */}
+        <div className="w-full h-full flex items-center justify-center relative pointer-events-auto z-10 mt-12 lg:mt-0">
+            <GitBranchAnimation />
+        </div>
+        
       </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-to-br before:from-transparent before:to-cyan-700 before:opacity-10 before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-to-t after:from-emerald-900 after:via-cyan-800 after:opacity-40 after:blur-2xl after:content-[''] z-[-1]">
-        <h1 className="text-6xl font-black tracking-tight text-center">
-          Code is your <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-600">
-            Identity
-          </span>
-        </h1>
-      </div>
+      {/* NEW Features Section */}
+      <FeaturesSection />
 
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-[#333] hover:bg-[#1e1e1e] hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Sync{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Connect GitHub, LeetCode, and Kaggle.
-          </p>
-        </div>
-
-        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-[#333] hover:bg-[#1e1e1e] hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Build{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Create your modular developer profile.
-          </p>
-        </div>
-
-        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-[#333] hover:bg-[#1e1e1e] hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Share{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Write markdown blogs with syntax highlighting.
-          </p>
-        </div>
-
-        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-[#333] hover:bg-[#1e1e1e] hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Connect{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Network with fellow developers.
-          </p>
-        </div>
-      </div>
+      {/* Terminal CTA Section */}
+      <TerminalCTA />
     </main>
   );
 }

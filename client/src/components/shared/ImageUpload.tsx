@@ -70,8 +70,9 @@ export default function ImageUpload({ value, onChange, placeholder = "Upload Ima
     // Actually, this logic is best kept in a utility or just hardcoded for this MVP debt fix.
     const getImageUrl = (path: string) => {
         if (!path) return '';
-        if (path.startsWith('http')) return path;
-        // Fallback for local dev
+        // Cloudinary and absolute URLs
+        if (path.startsWith('http') || path.startsWith('https://res.cloudinary.com')) return path;
+        // Fallback for old local files still in database
         return `${BASE_URL}${path}`; 
     };
 

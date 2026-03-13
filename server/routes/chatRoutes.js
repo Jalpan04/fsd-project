@@ -2,19 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const { getConversations, getMessages, sendMessage, markAsRead, getUnreadCount } = require('../controllers/chatController');
-const multer = require('multer');
-const path = require('path');
-
-const storage = multer.diskStorage({
-    destination(req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename(req, file, cb) {
-        cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-    }
-});
-
-const upload = multer({ storage });
+const upload = require('../middleware/uploadMiddleware');
 
 router.get('/conversations', protect, getConversations);
 router.get('/unread-count', protect, getUnreadCount);
